@@ -39,6 +39,15 @@ int main() {
 	
 	for(int i = 0; i < numDimensions; i++) {
 		for(int j = 0; j < numDimensions; j++) {
+			float numerator = 0;
+			
+			// Calculate sum over all points
+			for(int k = 0; k < numElements; k++) {
+				numerator += (pointList[k][i] - mean[i]) * (pointList[k][j] - mean[j]);
+			}
+			float denominator = numElements - 1;
+
+			covariance[i][j] = numerator / denominator;
 		}
 	}
 
