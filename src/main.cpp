@@ -6,22 +6,27 @@
 int main() {
 	cudaError_t err = cudaSuccess;
 
-	unsigned int numElements = 100;
+	unsigned int numElements = 5;
 	unsigned int numDimensions = 3;
 	float** pointList = new float*[numElements];
 
 	// Initialize vectors with random data
 	std::srand(std::time(0));
-	for(int i = 0; i < numElements; i++) {
-		pointList[i] = new float[numDimensions];
+	//for(int i = 0; i < numElements; i++) {
+	//	pointList[i] = new float[numDimensions];
 
-		pointList[i][0] = std::rand()*10;
-		pointList[i][1] = std::rand()*10;
-		pointList[i][2] = std::rand()*20;
-	}
+		// pointList[i][0] = std::rand()*10;
+		// pointList[i][1] = std::rand()*10;
+		// pointList[i][2] = std::rand()*20;
+	//}
+	pointList[0] = new float[3]{4,2,0.6};
+	pointList[1] = new float[3]{4.2,2.1,0.59};
+	pointList[2] = new float[3]{3.9,2,0.58};
+	pointList[3] = new float[3]{4.3,2.1,0.62};
+	pointList[4] = new float[3]{4.1,2.2,0.63};
 
 	// Compute mean
-	float* mean = new float[3]{0,0,0};
+	float mean[3] = {0,0,0};
 	for(int i = 0; i < numElements; i++) {
 		mean[0] += pointList[i][0];
 		mean[1] += pointList[i][1];
@@ -51,7 +56,33 @@ int main() {
 		}
 	}
 
-	std::cout << mean[0] << " " << mean[1] << " " << mean[2] << std::endl;
+	covariance[0][0] = 2;
+	covariance[0][1] = -12;
+	covariance[1][0] = 1;
+	covariance[1][1] = -5;
+	float eigenvalue[3] = {1,1,1};
+	float temp[3] = {0,0,0};
+	for(int i = 0; i < 5; i++) {
+		temp[0] = (covariance[0][0]*eigenvalue[0]) + (covariance[0][1]*eigenvalue[1]);
+		temp[1] = (covariance[1][0]*eigenvalue[0]) + (covariance[1][1]*eigenvalue[1]);
+		temp[2] = (covariance[2][0]*eigenvalue[0]) + (covariance[2][1]*eigenvalue[1]);
+
+		eigenvalue[0] = temp[0];
+		eigenvalue[1] = temp[1];
+		eigenvalue[2] = temp[2];
+	}
+
+	std::cout << eigenvalue[0] << " " << eigenvalue[1] << " " << eigenvalue[2] << std::endl;
+
+
+	/*
+	for(int i = 0; i < numDimensions; i++) {
+		for(int j = 0; j < numDimensions; j++) {
+			std::cout << "    " << covariance[i][j];
+		}
+		std::cout << std::endl;
+	}
+	*/
 
 	// Delete covariance matrix
 	delete[] covariance[0];
