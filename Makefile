@@ -1,6 +1,6 @@
 PROJECTNAME = pca_icp
-CPPFLAGS = -g
-LDFLAGS =
+CPPFLAGS = -g -std=c++11
+LDFLAGS = -lcuda
 OBJDIR = obj/
 SRCDIR = src/
 INCDIRS = include/
