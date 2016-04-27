@@ -3,7 +3,7 @@ CPPFLAGS = -g -std=c++11
 LDFLAGS = -lcuda
 OBJDIR = obj/
 SRCDIR = src/
-INCDIRS = include/
+INCDIRS = include/ /usr/include/eigen3/
 INC = $(foreach d, $(INCDIRS), -I$d)
 COMPILER = /usr/local/cuda/bin/nvcc
 

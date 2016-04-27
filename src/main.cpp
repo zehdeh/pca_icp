@@ -3,6 +3,7 @@
 #include <ctime>
 #include <math.h>
 #include <cuda_runtime.h>
+#include <Eigen/Dense>
 
 // Compute eigenvector of matrix with power iteration
 void computeEigenvalue(float** const covariance, float* eigenvector, float* eigenvalue, const unsigned int numDimensions, const unsigned int numIterations) {
@@ -61,7 +62,7 @@ int main() {
 	cudaError_t err = cudaSuccess;
 
 	unsigned int numElements = 5;
-	unsigned int numDimensions = 4;
+	unsigned int numDimensions = 3;
 	float** pointList = new float*[numElements];
 
 	// Initialize vectors with random data
