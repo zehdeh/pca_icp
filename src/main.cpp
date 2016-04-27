@@ -4,6 +4,7 @@
 #include <math.h>
 #include <cuda_runtime.h>
 #include <Eigen/Dense>
+#include <Eigen/Eigenvalues>
 
 // Compute eigenvector of matrix with power iteration
 void computeEigenvalue(float** const covariance, float* eigenvector, float* eigenvalue, const unsigned int numDimensions, const unsigned int numIterations) {
@@ -105,6 +106,20 @@ int main() {
 			covariance[i][j] = numerator / denominator;
 		}
 	}
+
+	float buffer[9];
+	for(int i = 0; i < 3; i++) {
+		for(int j = 0; j < 3; j++) {
+			buffer[i*3+j] = covariance[i][j];
+		}
+	}
+	
+	Eigen::Matrix3f covarianceEigen = Eigen::Map< Eigen::Matrix3f >(buffer);
+	Eigen::EigenSolver< Eigen::Matrix3f > es(covarianceEigen);
+	std::cout << "The eigenvalues are:" << std::endl;
+	std::cout << es.eigenvalues() << std::endl;
+	std::cout << "The eigenvectors are:" << std::endl;
+	std::cout << es.eigenvectors() << std::endl;
 
 	// Initialize eigenvector so it sums up to 1
 	float eigenvector[numDimensions];
