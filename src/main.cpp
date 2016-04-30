@@ -6,6 +6,14 @@
 #include <Eigen/Eigenvalues>
 #include <math.h>
 
+void computeCentroid(const unsigned int numElements, const unsigned int numDimensions, const float* const pointList, float* const centroid) {
+	for(unsigned int i = 0; i < numElements; i++) {
+		for(unsigned int j = 0; j < numDimensions; j++) {
+			centroid[j] += pointList[i*numDimensions + j] / numElements;
+		}
+	}
+}
+
 void computeCovariance(const unsigned int numElements, const unsigned int numDimensions, const float* const pointList, float* const covariance) {
 	// Compute mean
 	float mean[numDimensions];
@@ -67,23 +75,23 @@ int main() {
 
 	// 2x1x1 cube
 	pointList1[0 + 0] = 0; pointList1[0 + 1] = 0; pointList1[0 + 2] = 0;
-	pointList1[1 + 0] = 2; pointList1[1 + 1] = 0; pointList1[1 + 2] = 0;
-	pointList1[1 + 0] = 2; pointList1[1 + 1] = 1; pointList1[1 + 2] = 0;
-	pointList1[1 + 0] = 0; pointList1[1 + 1] = 1; pointList1[1 + 2] = 0;
-	pointList1[1 + 0] = 0; pointList1[1 + 1] = 0; pointList1[1 + 2] = 1;
-	pointList1[1 + 0] = 2; pointList1[1 + 1] = 0; pointList1[1 + 2] = 1;
-	pointList1[1 + 0] = 2; pointList1[1 + 1] = 1; pointList1[1 + 2] = 1;
-	pointList1[1 + 0] = 0; pointList1[1 + 1] = 1; pointList1[1 + 2] = 1;
+	pointList1[3 + 0] = 2; pointList1[3 + 1] = 0; pointList1[3 + 2] = 0;
+	pointList1[6 + 0] = 2; pointList1[6 + 1] = 1; pointList1[6 + 2] = 0;
+	pointList1[9 + 0] = 0; pointList1[9 + 1] = 1; pointList1[9 + 2] = 0;
+	pointList1[12 + 0] = 0; pointList1[12 + 1] = 0; pointList1[12 + 2] = 1;
+	pointList1[15 + 0] = 2; pointList1[15 + 1] = 0; pointList1[15 + 2] = 1;
+	pointList1[18 + 0] = 2; pointList1[18 + 1] = 1; pointList1[18 + 2] = 1;
+	pointList1[21 + 0] = 0; pointList1[21 + 1] = 1; pointList1[21 + 2] = 1;
 
 	// 1x1x2 cube
 	pointList2[0 + 0] = 0; pointList2[0 + 1] = 0; pointList2[0 + 2] = 0;
-	pointList2[0 + 0] = 1; pointList2[0 + 1] = 0; pointList2[0 + 2] = 0;
-	pointList2[0 + 0] = 1; pointList2[0 + 1] = 1; pointList2[0 + 2] = 0;
-	pointList2[0 + 0] = 0; pointList2[0 + 1] = 1; pointList2[0 + 2] = 0;
-	pointList2[0 + 0] = 0; pointList2[0 + 1] = 0; pointList2[0 + 2] = 2;
-	pointList2[0 + 0] = 1; pointList2[0 + 1] = 0; pointList2[0 + 2] = 2;
-	pointList2[0 + 0] = 1; pointList2[0 + 1] = 1; pointList2[0 + 2] = 2;
-	pointList2[0 + 0] = 0; pointList2[0 + 1] = 1; pointList2[0 + 2] = 2;
+	pointList2[3 + 0] = 1; pointList2[3 + 1] = 0; pointList2[3 + 2] = 0;
+	pointList2[6 + 0] = 1; pointList2[6 + 1] = 1; pointList2[6 + 2] = 0;
+	pointList2[9 + 0] = 0; pointList2[9 + 1] = 1; pointList2[9 + 2] = 0;
+	pointList2[12 + 0] = 0; pointList2[12 + 1] = 0; pointList2[12 + 2] = 2;
+	pointList2[15 + 0] = 1; pointList2[15 + 1] = 0; pointList2[15 + 2] = 2;
+	pointList2[18 + 0] = 1; pointList2[18 + 1] = 1; pointList2[18 + 2] = 2;
+	pointList2[21 + 0] = 0; pointList2[21 + 1] = 1; pointList2[21 + 2] = 2;
 
 	/*
 	// Initialize vectors with random data
@@ -94,6 +102,13 @@ int main() {
 		}
 	}
 	*/
+
+	float centroid1[numDimensions];
+	memset(centroid1, 0, sizeof(float)*numDimensions);
+	computeCentroid(numElements, numDimensions, pointList1, centroid1);
+
+	std::cout << "\033[1mCentroid:\033[0m" << std::endl;
+	std::cout << "(" << centroid1[0] << "|" << centroid1[1] << "|" << centroid1[2] << ")" << std::endl;
 
 	// Compute covariance matrix
 	float* covariance1 = new float[numDimensions * numDimensions];
