@@ -1,181 +1,148 @@
 #include <iostream>
 #include <cstdlib>
 #include <ctime>
-#include <math.h>
-#include <cuda_runtime.h>
+#include <cmath>
 #include <Eigen/Dense>
 #include <Eigen/Eigenvalues>
+#include <math.h>
 
-// Compute eigenvector of matrix with power iteration
-void computeEigenvalue(float** const covariance, float* eigenvector, float* eigenvalue, const unsigned int numDimensions, const unsigned int numIterations) {
-	float temp[numDimensions];
-	for(int i = 0; i < numDimensions; i++) {
-		temp[i] = 0;
+#include "util.h"
+
+void svdMethod(const unsigned int numElements, const unsigned int numDimensions, float* const pointList1, float* const pointList2) {
+	float centroid1[numDimensions];
+	memset(centroid1, 0, sizeof(float)*numDimensions);
+
+	float centroid2[numDimensions];
+	memset(centroid2, 0, sizeof(float)*numDimensions);
+
+	for(unsigned int i = 0; i < numElements; i++) {
+		for(unsigned int j = 0; j < numDimensions; j++) {
+			centroid1[j] += pointList1[i*numDimensions + j] / numElements;
+			centroid2[j] += pointList2[i*numDimensions + j] / numElements;
+		}
 	}
 
-	float norm = 0;
-	for(int k = 0; k < numIterations; k++) {
-		for(int i = 0; i < numDimensions; i++) {
-			for(int j = 0; j < numDimensions; j++) {
-				temp[i] += covariance[i][j]*eigenvector[j];
+	for(unsigned int i = 0; i < numElements; i++) {
+		for(unsigned int j = 0; j < numDimensions; j++) {
+			pointList1[i*numDimensions + j] -= centroid1[j];
+			pointList2[i*numDimensions + j] -= centroid2[j];
+		}
+	}
+
+	float covariance[numDimensions * numDimensions];
+	memset(covariance, 0, sizeof(float)*numDimensions*numDimensions);
+
+	for(unsigned int k = 0; k < numElements; k++) {
+		for(unsigned int i = 0; i < numDimensions; i++) {
+			for(unsigned int j = 0; j < numDimensions; j++) {
+				covariance[i*numDimensions + j] += pointList1[k*numElements + i] * pointList2[k*numElements + j];
+
 			}
 		}
-
-		float normSq = 0;
-		for(int l = 0; l < numDimensions; l++) {
-			normSq += temp[l]*temp[l];
-		}
-		norm = sqrt(normSq);
-		
-		for(int i = 0; i < numDimensions; i++) {
-			eigenvector[i] = temp[i] / norm;
-		}
 	}
 
-	float numVec[3];
-	for(int i = 0; i < numDimensions; i++) {
-		numVec[i] = 0;
-	}
+	Eigen::Matrix3f eigenCovariance = Eigen::Map< Eigen::Matrix<float, 3, 3, Eigen::RowMajor> >(covariance);
+	Eigen::JacobiSVD< Eigen::MatrixXf > svd(eigenCovariance, Eigen::ComputeFullU | Eigen::ComputeFullV);
 
-	for(int i = 0; i < numDimensions; i++) {
-		for(int j = 0; j < numDimensions; j++) {
-			numVec[i] += covariance[i][j] * eigenvector[j];
-		}
-	}
+	Eigen::MatrixXf R = svd.matrixU() * svd.matrixV();
+	std::cout << "Rotation matrix: " << R << std::endl;
 
-	float denom = 0;
-	for(int i = 0; i < numDimensions; i++) {
-		denom += eigenvector[i]*eigenvector[i];
-	}
+	float* rotation;
+	Eigen::Map< Eigen::Matrix<float, 3, 3, Eigen::RowMajor> >(rotation, R.rows(), R.cols()) = R;
+	printMatrix(numDimensions, numDimensions, rotation);
 
-	for(int i = 0; i < numDimensions; i++) {
-		numVec[i] = numVec[i] / denom;
-	}
-	
-	float sum = 0;
-	for(int i = 0; i < numDimensions; i++) {
-		sum += numVec[i]*numVec[i];
-	}
-	*eigenvalue = sqrt(sum);
+	float result[numElements*numDimensions];
 }
 
 int main() {
-	cudaError_t err = cudaSuccess;
 
-	unsigned int numElements = 5;
-	unsigned int numDimensions = 3;
-	float** pointList = new float*[numElements];
+	const unsigned int numElements = 8;
+	const unsigned int numDimensions = 3;
+	float* pointList1 = new float[numElements*numDimensions];
+	float* pointList2 = new float[numElements*numDimensions];
 
+	// 2x1x1 cube
+	pointList1[0 + 0] = 0; pointList1[0 + 1] = 0; pointList1[0 + 2] = 0;
+	pointList1[3 + 0] = 2; pointList1[3 + 1] = 0; pointList1[3 + 2] = 0;
+	pointList1[6 + 0] = 2; pointList1[6 + 1] = 1; pointList1[6 + 2] = 0;
+	pointList1[9 + 0] = 0; pointList1[9 + 1] = 1; pointList1[9 + 2] = 0;
+	pointList1[12 + 0] = 0; pointList1[12 + 1] = 0; pointList1[12 + 2] = 1;
+	pointList1[15 + 0] = 2; pointList1[15 + 1] = 0; pointList1[15 + 2] = 1;
+	pointList1[18 + 0] = 2; pointList1[18 + 1] = 1; pointList1[18 + 2] = 1;
+	pointList1[21 + 0] = 0; pointList1[21 + 1] = 1; pointList1[21 + 2] = 1;
+
+	// 1x1x2 cube
+	pointList2[0 + 0] = 0; pointList2[0 + 1] = 0; pointList2[0 + 2] = 0;
+	pointList2[3 + 0] = 1; pointList2[3 + 1] = 0; pointList2[3 + 2] = 0;
+	pointList2[6 + 0] = 1; pointList2[6 + 1] = 1; pointList2[6 + 2] = 0;
+	pointList2[9 + 0] = 0; pointList2[9 + 1] = 1; pointList2[9 + 2] = 0;
+	pointList2[12 + 0] = 0; pointList2[12 + 1] = 0; pointList2[12 + 2] = 2;
+	pointList2[15 + 0] = 1; pointList2[15 + 1] = 0; pointList2[15 + 2] = 2;
+	pointList2[18 + 0] = 1; pointList2[18 + 1] = 1; pointList2[18 + 2] = 2;
+	pointList2[21 + 0] = 0; pointList2[21 + 1] = 1; pointList2[21 + 2] = 2;
+
+	svdMethod(numElements, numDimensions, pointList1, pointList2);
+
+	std::cout << "First:" << std::endl;
+	printMatrix(numElements, numDimensions, pointList1);
+	std::cout << "Second:" << std::endl;
+	printMatrix(numElements, numDimensions, pointList1);
+	return 0;
+
+	/*
 	// Initialize vectors with random data
 	std::srand(std::time(0));
 	for(int i = 0; i < numElements; i++) {
-		pointList[i] = new float[numDimensions];
-		for(int j = 0; j < numElements; j++) {
-			pointList[i][j] = std::rand()%10;
-		}
-	}
-
-	// Compute mean
-	float mean[numDimensions];
-	for(int i = 0; i < numElements; i++) {
 		for(int j = 0; j < numDimensions; j++) {
-			mean[j] += pointList[i][j];
+			pointList1[i*numDimensions + j] = std::rand()%10;
 		}
 	}
+	*/
+	doTranslation(numElements, numDimensions, pointList1, pointList2);
 
-	for(int i = 0; i < numDimensions; i++) {
-		mean[i] = mean[i] / numElements;
-	}
 
 	// Compute covariance matrix
-	float** covariance = new float*[numDimensions];
-	for(int i = 0; i < numDimensions; i++) {
-		covariance[i] = new float[numDimensions];
-	}
-	
-	for(int i = 0; i < numDimensions; i++) {
-		for(int j = 0; j < numDimensions; j++) {
-			float numerator = 0;
-			
-			// Calculate sum over all points
-			for(int k = 0; k < numElements; k++) {
-				numerator += (pointList[k][i] - mean[i]) * (pointList[k][j] - mean[j]);
-			}
-			float denominator = numElements - 1;
+	float* covariance1 = new float[numDimensions * numDimensions];
+	float* covariance2 = new float[numDimensions * numDimensions];
+	computeCovariance(numElements, numDimensions, pointList1, covariance1);
+	computeCovariance(numElements, numDimensions, pointList2, covariance2);
 
-			covariance[i][j] = numerator / denominator;
-		}
-	}
 
-	float buffer[9];
-	for(int i = 0; i < 3; i++) {
-		for(int j = 0; j < 3; j++) {
-			buffer[i*3+j] = covariance[i][j];
-		}
-	}
-	
-	Eigen::Matrix3f covarianceEigen = Eigen::Map< Eigen::Matrix3f >(buffer);
-	Eigen::EigenSolver< Eigen::Matrix3f > es(covarianceEigen);
-	std::cout << "The eigenvalues are:" << std::endl;
-	std::cout << es.eigenvalues() << std::endl;
-	std::cout << "The eigenvectors are:" << std::endl;
-	std::cout << es.eigenvectors() << std::endl;
+	Eigen::Matrix3f eigenCovariance1 = Eigen::Map< Eigen::Matrix<float, 3, 3, Eigen::RowMajor> >(covariance1);
+	Eigen::EigenSolver< Eigen::Matrix3f > es1(eigenCovariance1);
 
-	// Initialize eigenvector so it sums up to 1
-	float eigenvector[numDimensions];
-	float frac = 1.0 / numDimensions;
-	for(int i = 0; i < numDimensions; i++) {
-		eigenvector[i] = frac;
-	}
+	Eigen::Matrix3f eigenCovariance2 = Eigen::Map< Eigen::Matrix<float, 3, 3, Eigen::RowMajor> >(covariance2);
+	Eigen::EigenSolver< Eigen::Matrix3f > es2(eigenCovariance2);
 
-	float eigenvalue = 0;
-	computeEigenvalue(covariance,eigenvector,&eigenvalue,numDimensions,100);
+	std::cout << "\033[1m First pointcloud:\033[0m" << std::endl;
+	printMatrix(numElements, numDimensions, pointList1);
 
-	std::cout << "\033[1mDominant eigenvector:\033[0m" << std::endl;
-	std::cout << "{";
-	for(int i = 0; i < numDimensions; i++) {
-		std::cout << eigenvector[i];
-
-		if(i < numDimensions - 1) {
-			std::cout << ",";
-		}
-	}
-	std::cout << "}" << std::endl;
-
-	std::cout << "\033[1mDominant eigenvalue:\033[0m" << std::endl;
-	std::cout << eigenvalue << std::endl;
+	std::cout << "\033[1mEigenvectors:\033[0m" << std::endl;
+	std::cout << es1.eigenvectors() << std::endl;
+	std::cout << "\033[1mEigenvalues:\033[0m" << std::endl;
+	std::cout << es1.eigenvalues() << std::endl;
 
 	std::cout << "\033[1mCovariance matrix:\033[0m" << std::endl;
-	std::cout << "{";
-	for(int i = 0; i < numDimensions; i++) {
-		std::cout << "{";
-		for(int j = 0; j < numDimensions; j++) {
-			std::cout << covariance[i][j];
-
-			if(j < numDimensions - 1) {
-				std::cout << ",";
-			}
-		}
-		std::cout << "}";
-
-		if(i < numDimensions - 1) {
-			std::cout << "," << std::endl;
-		}
-	}
-	std::cout << "}" << std::endl;
-
-	// Delete covariance matrix
-	delete[] covariance[0];
-	delete[] covariance[1];
-	delete[] covariance[2];
+	printMatrix(numDimensions, numDimensions, covariance1);
 	
-	delete covariance;
+	std::cout << "\033[1m Second pointcloud:\033[0m" << std::endl;
+	printMatrix(numElements, numDimensions, pointList2);
+
+	std::cout << "\033[1mEigenvectors:\033[0m" << std::endl;
+	std::cout << es2.eigenvectors() << std::endl;
+	std::cout << "\033[1mEigenvalues:\033[0m" << std::endl;
+	std::cout << es2.eigenvalues() << std::endl;
+	
+	std::cout << "\033[1mCovariance matrix:\033[0m" << std::endl;
+	printMatrix(numDimensions, numDimensions, covariance2);
+
+	// Delete covariance matrices
+	delete covariance1;
+	delete covariance2;
 
 	// Delete all vectors
-	for(int i = 0; i < numElements; i++) {
-		delete[] pointList[i];
-	}
+	delete pointList1;
+	delete pointList2;
 
-	delete pointList;
 	return 0;
 }
