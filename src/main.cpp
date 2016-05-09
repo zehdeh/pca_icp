@@ -7,8 +7,9 @@
 #include <math.h>
 
 #include "util.h"
+#include "objloader.h"
 
-void svdMethod(const unsigned int numElements, const unsigned int numDimensions, float* const pointList1, float* const pointList2) {
+void centerPoints(const unsigned int numElements, const unsigned int numDimensions, float* const pointList1, float* const pointList2) {
 	float centroid1[numDimensions];
 	memset(centroid1, 0, sizeof(float)*numDimensions);
 
@@ -21,6 +22,8 @@ void svdMethod(const unsigned int numElements, const unsigned int numDimensions,
 			centroid2[j] += pointList2[i*numDimensions + j] / numElements;
 		}
 	}
+	std::cout << "Centroid1: " << centroid1[0] << " " << centroid1[1] << " " << centroid1[2] << std::endl;
+	std::cout << "Centroid2: " << centroid2[0] << " " << centroid2[1] << " " << centroid2[2] << std::endl;
 
 	for(unsigned int i = 0; i < numElements; i++) {
 		for(unsigned int j = 0; j < numDimensions; j++) {
@@ -28,10 +31,25 @@ void svdMethod(const unsigned int numElements, const unsigned int numDimensions,
 			pointList2[i*numDimensions + j] -= centroid2[j];
 		}
 	}
+}
+
+void rotateMatrix(const unsigned int numElements, const unsigned int numDimensions, float* const pointList1, const float* const pointList2, const float* const rotation) {
+	for(unsigned int i = 0; i < numElements; i++) {
+		for(unsigned int j = 0; j < numDimensions; j++) {
+			for(unsigned int k = 0; k < numDimensions; k++) {
+				pointList1[i*numDimensions + j] += pointList2[i*numDimensions + j]*rotation[i*numDimensions + k];
+			}
+		}
+	}
+}
+
+void svdMethod(const unsigned int numElements, const unsigned int numDimensions, float* const pointList1, float* const pointList2) {
+	centerPoints(numElements, numDimensions, pointList1, pointList2);
 
 	float covariance[numDimensions * numDimensions];
 	memset(covariance, 0, sizeof(float)*numDimensions*numDimensions);
 
+	/*
 	for(unsigned int k = 0; k < numElements; k++) {
 		for(unsigned int i = 0; i < numDimensions; i++) {
 			for(unsigned int j = 0; j < numDimensions; j++) {
@@ -39,7 +57,18 @@ void svdMethod(const unsigned int numElements, const unsigned int numDimensions,
 
 			}
 		}
+	}*/
+	for(unsigned int i = 1;i <= numDimensions; i++) {
+		for(unsigned int j = 1; j <= numDimensions; j++) {
+			covariance[i * numDimensions + j]=0;
+			for(unsigned int k = 1; k <= numElements; k++) {
+				covariance[i * numDimensions + j]=covariance[i * numDimensions + j]+pointList2[numDimensions*k + i] * pointList1[numDimensions*k + j];
+			}
+		}
 	}
+
+	std::cout << "Covariance:" << std::endl;
+	printMatrix(numDimensions, numDimensions, covariance);
 
 	Eigen::Matrix3f eigenCovariance = Eigen::Map< Eigen::Matrix<float, 3, 3, Eigen::RowMajor> >(covariance);
 	Eigen::JacobiSVD< Eigen::MatrixXf > svd(eigenCovariance, Eigen::ComputeFullU | Eigen::ComputeFullV);
@@ -47,19 +76,43 @@ void svdMethod(const unsigned int numElements, const unsigned int numDimensions,
 	Eigen::MatrixXf R = svd.matrixU() * svd.matrixV();
 	std::cout << "Rotation matrix: " << R << std::endl;
 
-	float* rotation;
+	float rotation[numDimensions*numDimensions];
 	Eigen::Map< Eigen::Matrix<float, 3, 3, Eigen::RowMajor> >(rotation, R.rows(), R.cols()) = R;
 	printMatrix(numDimensions, numDimensions, rotation);
+	std::cout << "determinant: " << R.determinant() << std::endl;
 
-	float result[numElements*numDimensions];
+	return rotateMatrix(numElements, numDimensions, pointList1, pointList2, rotation);
 }
 
 int main() {
-
-	const unsigned int numElements = 8;
+	/*
+	std::vector<vec3> vertices1;
 	const unsigned int numDimensions = 3;
-	float* pointList1 = new float[numElements*numDimensions];
-	float* pointList2 = new float[numElements*numDimensions];
+	const unsigned int numElements1 = loadObj("res/untitled.obj", &vertices1);
+
+	std::vector<vec3> vertices2;
+	const unsigned int numElements2 = loadObj("res/untitled.obj", &vertices2);
+
+	assert(numElements1 == numElements2);
+	float* pointList1[numElements1*numDimensions];
+	float* pointList2[numElements1*numDimensions];
+	for(unsigned int i = 0; i < numElements1; i++) {
+		pointList1[i*numDimensions] = &vertices1[0].x;
+		pointList1[i*numDimensions + 1] = &vertices1[0].y;
+		pointList1[i*numDimensions + 2] = &vertices1[0].z;
+
+		pointList2[i*numDimensions] = &vertices2[0].x;
+		pointList2[i*numDimensions + 1] = &vertices2[0].y;
+		pointList2[i*numDimensions + 2] = &vertices2[0].z;
+	}
+
+	svdMethod(numElements1, numDimensions, *pointList1, *pointList2);
+	*/
+
+	const unsigned int numElements1 = 8;
+	const unsigned int numDimensions = 3;
+	float* pointList1 = new float[numElements1*numDimensions];
+	float* pointList2 = new float[numElements1*numDimensions];
 
 	// 2x1x1 cube
 	pointList1[0 + 0] = 0; pointList1[0 + 1] = 0; pointList1[0 + 2] = 0;
@@ -73,76 +126,23 @@ int main() {
 
 	// 1x1x2 cube
 	pointList2[0 + 0] = 0; pointList2[0 + 1] = 0; pointList2[0 + 2] = 0;
-	pointList2[3 + 0] = 1; pointList2[3 + 1] = 0; pointList2[3 + 2] = 0;
-	pointList2[6 + 0] = 1; pointList2[6 + 1] = 1; pointList2[6 + 2] = 0;
+	pointList2[3 + 0] = 0; pointList2[3 + 1] = 0; pointList2[3 + 2] = 2;
+	pointList2[6 + 0] = 0; pointList2[6 + 1] = 1; pointList2[6 + 2] = 2;
 	pointList2[9 + 0] = 0; pointList2[9 + 1] = 1; pointList2[9 + 2] = 0;
-	pointList2[12 + 0] = 0; pointList2[12 + 1] = 0; pointList2[12 + 2] = 2;
-	pointList2[15 + 0] = 1; pointList2[15 + 1] = 0; pointList2[15 + 2] = 2;
-	pointList2[18 + 0] = 1; pointList2[18 + 1] = 1; pointList2[18 + 2] = 2;
-	pointList2[21 + 0] = 0; pointList2[21 + 1] = 1; pointList2[21 + 2] = 2;
+	pointList2[12 + 0] = -1; pointList2[12 + 1] = 0; pointList2[12 + 2] = 0;
+	pointList2[15 + 0] = -1; pointList2[15 + 1] = 0; pointList2[15 + 2] = 2;
+	pointList2[18 + 0] = -1; pointList2[18 + 1] = 1; pointList2[18 + 2] = 2;
+	pointList2[21 + 0] = -1; pointList2[21 + 1] = 1; pointList2[21 + 2] = 0;
 
-	svdMethod(numElements, numDimensions, pointList1, pointList2);
-
-	std::cout << "First:" << std::endl;
-	printMatrix(numElements, numDimensions, pointList1);
-	std::cout << "Second:" << std::endl;
-	printMatrix(numElements, numDimensions, pointList1);
-	return 0;
+	svdMethod(numElements1, numDimensions, pointList1, pointList2);
 
 	/*
-	// Initialize vectors with random data
-	std::srand(std::time(0));
-	for(int i = 0; i < numElements; i++) {
-		for(int j = 0; j < numDimensions; j++) {
-			pointList1[i*numDimensions + j] = std::rand()%10;
-		}
-	}
+	std::cout << "First:" << std::endl;
+	printMatrix(numElements1, numDimensions, pointList1);
+	std::cout << std::endl;
+	std::cout << "Second:" << std::endl;
+	printMatrix(numElements1, numDimensions, pointList2);
 	*/
-	doTranslation(numElements, numDimensions, pointList1, pointList2);
-
-
-	// Compute covariance matrix
-	float* covariance1 = new float[numDimensions * numDimensions];
-	float* covariance2 = new float[numDimensions * numDimensions];
-	computeCovariance(numElements, numDimensions, pointList1, covariance1);
-	computeCovariance(numElements, numDimensions, pointList2, covariance2);
-
-
-	Eigen::Matrix3f eigenCovariance1 = Eigen::Map< Eigen::Matrix<float, 3, 3, Eigen::RowMajor> >(covariance1);
-	Eigen::EigenSolver< Eigen::Matrix3f > es1(eigenCovariance1);
-
-	Eigen::Matrix3f eigenCovariance2 = Eigen::Map< Eigen::Matrix<float, 3, 3, Eigen::RowMajor> >(covariance2);
-	Eigen::EigenSolver< Eigen::Matrix3f > es2(eigenCovariance2);
-
-	std::cout << "\033[1m First pointcloud:\033[0m" << std::endl;
-	printMatrix(numElements, numDimensions, pointList1);
-
-	std::cout << "\033[1mEigenvectors:\033[0m" << std::endl;
-	std::cout << es1.eigenvectors() << std::endl;
-	std::cout << "\033[1mEigenvalues:\033[0m" << std::endl;
-	std::cout << es1.eigenvalues() << std::endl;
-
-	std::cout << "\033[1mCovariance matrix:\033[0m" << std::endl;
-	printMatrix(numDimensions, numDimensions, covariance1);
-	
-	std::cout << "\033[1m Second pointcloud:\033[0m" << std::endl;
-	printMatrix(numElements, numDimensions, pointList2);
-
-	std::cout << "\033[1mEigenvectors:\033[0m" << std::endl;
-	std::cout << es2.eigenvectors() << std::endl;
-	std::cout << "\033[1mEigenvalues:\033[0m" << std::endl;
-	std::cout << es2.eigenvalues() << std::endl;
-	
-	std::cout << "\033[1mCovariance matrix:\033[0m" << std::endl;
-	printMatrix(numDimensions, numDimensions, covariance2);
-
-	// Delete covariance matrices
-	delete covariance1;
-	delete covariance2;
-
-	// Delete all vectors
-	delete pointList1;
-	delete pointList2;
 
 	return 0;
 }
