@@ -22,8 +22,6 @@ void centerPoints(const unsigned int numElements, const unsigned int numDimensio
 			centroid2[j] += pointList2[i*numDimensions + j] / numElements;
 		}
 	}
-	std::cout << "Centroid1: " << centroid1[0] << " " << centroid1[1] << " " << centroid1[2] << std::endl;
-	std::cout << "Centroid2: " << centroid2[0] << " " << centroid2[1] << " " << centroid2[2] << std::endl;
 
 	for(unsigned int i = 0; i < numElements; i++) {
 		for(unsigned int j = 0; j < numDimensions; j++) {
@@ -33,11 +31,18 @@ void centerPoints(const unsigned int numElements, const unsigned int numDimensio
 	}
 }
 
-void rotateMatrix(const unsigned int numElements, const unsigned int numDimensions, float* const pointList1, const float* const pointList2, const float* const rotation) {
+void rotateMatrix(const unsigned int numElements, const unsigned int numDimensions, const float* const pointList1, float* const pointList2, const float* const rotation) {
+	memset(pointList2, 0, sizeof(float)*numDimensions*numElements);
 	for(unsigned int i = 0; i < numElements; i++) {
 		for(unsigned int j = 0; j < numDimensions; j++) {
 			for(unsigned int k = 0; k < numDimensions; k++) {
-				pointList1[i*numDimensions + j] += pointList2[i*numDimensions + j]*rotation[i*numDimensions + k];
+				pointList2[i*numDimensions + j] += pointList1[i*numDimensions + k]*rotation[j*numDimensions + k];
+				if(j == 0 && i == 0) {
+					std::cout << pointList1[i*numDimensions + k] << " * " << rotation[j*numDimensions + k] << std::endl;
+				}
+			}
+			if(j == 0 && i == 0) {
+				std::cout << pointList2[i*numDimensions + j] << std::endl;
 			}
 		}
 	}
@@ -45,6 +50,9 @@ void rotateMatrix(const unsigned int numElements, const unsigned int numDimensio
 
 void svdMethod(const unsigned int numElements, const unsigned int numDimensions, float* const pointList1, float* const pointList2) {
 	centerPoints(numElements, numDimensions, pointList1, pointList2);
+
+	std::cout << "First:" << std::endl;
+	printMatrix(numElements, numDimensions, pointList1);
 
 	float covariance[numDimensions * numDimensions];
 	memset(covariance, 0, sizeof(float)*numDimensions*numDimensions);
@@ -58,11 +66,22 @@ void svdMethod(const unsigned int numElements, const unsigned int numDimensions,
 			}
 		}
 	}*/
-	for(unsigned int i = 1;i <= numDimensions; i++) {
-		for(unsigned int j = 1; j <= numDimensions; j++) {
+	//std::cout << "non-Transposed:" << std::endl;
+	//printMatrix(numElements, numDimensions, pointList1);
+	
+	float pointList1Transposed[numElements*numDimensions];
+	for(unsigned int i = 0; i < numElements * numDimensions; i++) {
+		unsigned int j = i / numElements;
+		unsigned int k = i % numElements;
+
+		pointList1Transposed[i] = pointList1[k*numDimensions + j];
+	}
+
+	for(unsigned int i = 0;i < numDimensions; i++) {
+		for(unsigned int j = 0; j < numDimensions; j++) {
 			covariance[i * numDimensions + j]=0;
-			for(unsigned int k = 1; k <= numElements; k++) {
-				covariance[i * numDimensions + j]=covariance[i * numDimensions + j]+pointList2[numDimensions*k + i] * pointList1[numDimensions*k + j];
+			for(unsigned int k = 0; k < numElements; k++) {
+				covariance[i * numDimensions + j]=covariance[i * numDimensions + j]+pointList1Transposed[numElements*i + k] * pointList2[numDimensions*k + j];
 			}
 		}
 	}
@@ -74,10 +93,10 @@ void svdMethod(const unsigned int numElements, const unsigned int numDimensions,
 	Eigen::JacobiSVD< Eigen::MatrixXf > svd(eigenCovariance, Eigen::ComputeFullU | Eigen::ComputeFullV);
 
 	Eigen::MatrixXf R = svd.matrixU() * svd.matrixV();
-	std::cout << "Rotation matrix: " << R << std::endl;
+	std::cout << "Rotation matrix: " << std::endl;
 
 	float rotation[numDimensions*numDimensions];
-	Eigen::Map< Eigen::Matrix<float, 3, 3, Eigen::RowMajor> >(rotation, R.rows(), R.cols()) = R;
+	Eigen::Map< Eigen::Matrix<float, 3, 3> >(rotation, R.rows(), R.cols()) = R;
 	printMatrix(numDimensions, numDimensions, rotation);
 	std::cout << "determinant: " << R.determinant() << std::endl;
 
@@ -134,15 +153,17 @@ int main() {
 	pointList2[18 + 0] = -1; pointList2[18 + 1] = 1; pointList2[18 + 2] = 2;
 	pointList2[21 + 0] = -1; pointList2[21 + 1] = 1; pointList2[21 + 2] = 0;
 
+	std::cout << "First:" << std::endl;
+	printMatrix(numElements1, numDimensions, pointList1);
+
 	svdMethod(numElements1, numDimensions, pointList1, pointList2);
 
-	/*
 	std::cout << "First:" << std::endl;
 	printMatrix(numElements1, numDimensions, pointList1);
 	std::cout << std::endl;
 	std::cout << "Second:" << std::endl;
 	printMatrix(numElements1, numDimensions, pointList2);
-	*/
+
 
 	return 0;
 }
