@@ -18,10 +18,6 @@ def rigid_transform_3D(A, B):
     # centre the points
     AA = A - tile(centroid_A, (N, 1))
     BB = B - tile(centroid_B, (N, 1))
-    print 'AA:'
-    print transpose(AA)
-    print 'BB:'
-    print BB
 
     # dot is matrix multiplication for array
     H = transpose(AA) * BB
@@ -83,6 +79,10 @@ rmse = sqrt(err/n);
 
 print "Points A"
 print A
+print ""
+
+print "Points A2"
+print A2
 print ""
 
 print "Points B"

@@ -31,28 +31,26 @@ void centerPoints(const unsigned int numElements, const unsigned int numDimensio
 	}
 }
 
-void rotateMatrix(const unsigned int numElements, const unsigned int numDimensions, const float* const pointList1, float* const pointList2, const float* const rotation) {
-	memset(pointList2, 0, sizeof(float)*numDimensions*numElements);
+void rotateMatrix(const unsigned int numElements, const unsigned int numDimensions, float* const pointList, const float* const rotation) {
+	float temp[numElements * numDimensions];
+	memset(temp, 0, sizeof(float)*numDimensions*numElements);
 	for(unsigned int i = 0; i < numElements; i++) {
 		for(unsigned int j = 0; j < numDimensions; j++) {
 			for(unsigned int k = 0; k < numDimensions; k++) {
-				pointList2[i*numDimensions + j] += pointList1[i*numDimensions + k]*rotation[j*numDimensions + k];
-				if(j == 0 && i == 0) {
-					std::cout << pointList1[i*numDimensions + k] << " * " << rotation[j*numDimensions + k] << std::endl;
-				}
+				temp[i*numDimensions + j] += pointList[i*numDimensions + k]*rotation[j*numDimensions + k];
 			}
-			if(j == 0 && i == 0) {
-				std::cout << pointList2[i*numDimensions + j] << std::endl;
-			}
+		}
+	}
+
+	for(unsigned int i = 0; i < numElements; i++) {
+		for(unsigned int j = 0; j < numDimensions; j++) {
+			pointList[i*numDimensions + j] = temp[i*numDimensions + j];
 		}
 	}
 }
 
 void svdMethod(const unsigned int numElements, const unsigned int numDimensions, float* const pointList1, float* const pointList2) {
 	centerPoints(numElements, numDimensions, pointList1, pointList2);
-
-	std::cout << "First:" << std::endl;
-	printMatrix(numElements, numDimensions, pointList1);
 
 	float covariance[numDimensions * numDimensions];
 	memset(covariance, 0, sizeof(float)*numDimensions*numDimensions);
@@ -98,13 +96,11 @@ void svdMethod(const unsigned int numElements, const unsigned int numDimensions,
 	float rotation[numDimensions*numDimensions];
 	Eigen::Map< Eigen::Matrix<float, 3, 3> >(rotation, R.rows(), R.cols()) = R;
 	printMatrix(numDimensions, numDimensions, rotation);
-	std::cout << "determinant: " << R.determinant() << std::endl;
 
-	return rotateMatrix(numElements, numDimensions, pointList1, pointList2, rotation);
+	return rotateMatrix(numElements, numDimensions, pointList1, rotation);
 }
 
 int main() {
-	/*
 	std::vector<vec3> vertices1;
 	const unsigned int numDimensions = 3;
 	const unsigned int numElements1 = loadObj("res/untitled.obj", &vertices1);
@@ -125,9 +121,21 @@ int main() {
 		pointList2[i*numDimensions + 2] = &vertices2[0].z;
 	}
 
-	svdMethod(numElements1, numDimensions, *pointList1, *pointList2);
-	*/
+	float testRotation[9] = {0,0,-1,0,1,0,1,0,0};
+	rotateMatrix(numElements1, numDimensions, *pointList1, testRotation);
 
+	//svdMethod(numElements1, numDimensions, *pointList1, *pointList2);
+
+	std::cout << "First:" << std::endl;
+	printMatrix(numElements1, numDimensions, *pointList1);
+	std::cout << std::endl;
+	std::cout << "Second:" << std::endl;
+	printMatrix(numElements1, numDimensions, *pointList2);
+
+	std::cout << "RMSE:" << std::endl;
+	std::cout << MatrixRMSE(numElements1, numDimensions, *pointList1, *pointList2) << std::endl;
+
+	/*
 	const unsigned int numElements1 = 8;
 	const unsigned int numDimensions = 3;
 	float* pointList1 = new float[numElements1*numDimensions];
@@ -153,9 +161,6 @@ int main() {
 	pointList2[18 + 0] = -1; pointList2[18 + 1] = 1; pointList2[18 + 2] = 2;
 	pointList2[21 + 0] = -1; pointList2[21 + 1] = 1; pointList2[21 + 2] = 0;
 
-	std::cout << "First:" << std::endl;
-	printMatrix(numElements1, numDimensions, pointList1);
-
 	svdMethod(numElements1, numDimensions, pointList1, pointList2);
 
 	std::cout << "First:" << std::endl;
@@ -163,6 +168,7 @@ int main() {
 	std::cout << std::endl;
 	std::cout << "Second:" << std::endl;
 	printMatrix(numElements1, numDimensions, pointList2);
+	*/
 
 
 	return 0;
