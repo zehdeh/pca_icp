@@ -1,9 +1,9 @@
 PROJECTNAME = pca_icp
 CPPFLAGS = -g -std=c++11 -Wall
-LDFLAGS =
+LDFLAGS =-lboost_system -lboost_thread -lpcl_common -lpcl_io -lpcl_visualization -lpcl_filters -lvtkCommonDataModel-6.0 -lvtkCommonCore-6.0 -lvtkCommonMath-6.0 -lvtkRenderingCore-6.0 -lvtkRenderingLOD-6.0
 OBJDIR = obj/
 SRCDIR = src/
-INCDIRS = include/ /usr/include/eigen3/
+INCDIRS = include/ /usr/include/eigen3/ /usr/local/include/pcl-1.7/ /usr/include/vtk-6.0/
 INC = $(foreach d, $(INCDIRS), -I$d)
 COMPILER = g++
 

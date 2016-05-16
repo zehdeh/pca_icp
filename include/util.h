@@ -1,8 +1,11 @@
 #ifndef UTIL_HEADER
 #define UTIL_HEADER
 
+void rotateMatrix(const unsigned int numElements, const unsigned int numDimensions, float* const pointList, const float* const rotation);
 void printMatrix(const unsigned int m, const unsigned int n, const float* const covariance);
-
-float MatrixRMSE(const unsigned int m, const unsigned int n, const float* matrix1, const float* matrix2);
+float matrixRMSE(const unsigned int m, const unsigned int n, const float* matrix1, const float* matrix2);
+void findOriginDistance(const unsigned int numElements, const unsigned int numDimensions, const float* const pointList, float* const distance);
+void translate(const unsigned int numElements, const unsigned int numDimensions, float* const pointList, float* t);
+void transpose(const unsigned int numElements, const unsigned int numDimensions, float* const pointList, float* const pointListTransposed);
 
 #endif
