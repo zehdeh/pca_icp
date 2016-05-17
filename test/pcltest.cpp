@@ -48,8 +48,30 @@ int pclTest(const int argc, char** const argv) {
 	pcl::compute3DCentroid(*input, centroid);
 	pcl::demeanPointCloud(*input, centroid, *demeaned);
 
-	std::cout << pcl::getFieldsList<pcl::PointNormal>(*demeaned) << std::endl;
 	//pcl::PointCloud<pcl::PointXYZ>
+
+	float meanXLeft = 0;
+	int numXLeft = 0;
+	float meanXRight = 0;
+	int numXRight = 0;
+	for(size_t i = 0; i < demeaned->points.size(); i++) {
+		if(demeaned->points[i].x > 1.0) {
+			meanXLeft += demeaned->points[i].x;
+			numXLeft++;
+		}
+		if(demeaned->points[i].x < -1.0) {
+			meanXRight += demeaned->points[i].x;
+			numXRight++;
+		}
+	}
+	meanXLeft = (meanXLeft / numXLeft);
+	meanXRight = (meanXRight / numXRight);
+
+	/*
+	std::cout << meanXLeft << std::endl;
+	std::cout << meanXRight << std::endl;
+	std::cout << (meanXLeft - meanXRight) << std::endl;
+	*/
 
 	pcl::visualization::PCLVisualizer viewer("Simple Cloud Viewer");
 	viewer.addPointCloud<pcl::PointNormal>(demeaned, "sample cloud");

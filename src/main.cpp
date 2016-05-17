@@ -7,9 +7,11 @@
 #include "cubestest.h"
 #include "objtest.h"
 #include "pcltest.h"
+#include "cudatest.h"
 
 
 
 int main(int argc, char** argv) {
-	return pclTest(argc, argv);
+	//return pclTest(argc, argv);
+	return cudaTest();
 }
