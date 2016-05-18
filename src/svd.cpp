@@ -4,7 +4,7 @@
 #include "util.h"
 //#include <Eigen/Eigenvalues>
 
-void findCovariance(const unsigned int numElements, const unsigned int numDimensions, float* const pointList1, float* const pointList2, float* const covariance) {
+void findCovariance(const unsigned int numElements, const unsigned int numDimensions, const float* const pointList1, const float* const pointList2, float* const covariance) {
 	for(unsigned int i = 0;i < numDimensions; i++) {
 		for(unsigned int j = 0; j < numDimensions; j++) {
 			covariance[i * numDimensions + j]=0;
