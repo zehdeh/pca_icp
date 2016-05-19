@@ -6,6 +6,8 @@
 #include "cuda_runtime.h"
 
 #include "util.h"
+#include "svd.h"
+#include "cudaincludetest.h"
 
 inline void gpuAssert(cudaError_t code, const char * file, int line, bool Abort=true) {
 	if(code != cudaSuccess) {
@@ -206,10 +208,14 @@ int cudaTest() {
 	cuda_findCovariance<<<gridSize, blockSize>>>(maxNumElements, numDimensions, d_pointList1, d_pointList2, d_covariance);
 
 	cudaMemcpy(covariance, d_covariance, bytesCovariance, cudaMemcpyDeviceToHost);
-	std::cout << "number of threads: " << (gridSize*blockSize) << std::endl;
-	std::cout << "NumElements: " << maxNumElements << std::endl;
 	std::cout << "Covariance: " << std::endl;
 	printMatrix(numDimensions, numDimensions, covariance);
+
+	rotationMatrix rotation;
+	svdMethod(numDimensions, covariance, rotation);
+
+	std::cout << "Rotation: " << std::endl;
+	printMatrix(numDimensions, numDimensions, rotation);
 	
 	cudaFree(d_centroid1);
 	cudaFree(d_centroid2);

@@ -5,8 +5,15 @@ OBJDIR = obj/
 SRCDIRS = src test
 INCDIRS = include/ /usr/include/eigen3/ /usr/local/include/pcl-1.7/ /usr/include/vtk-6.0/ /usr/local/cuda/include/
 INC = $(foreach d, $(INCDIRS), -I$d)
-COMPILER = /usr/local/cuda/bin/nvcc
+COMPILER = g++
+CUDA_COMPILER = /usr/local/cuda/bin/nvcc
+CUDA_INSTALL_PATH = /usr/local/cuda/
 VPATH = src:test
+DEPDIR := .d
+$(shell mkdir -p $(DEPDIR) >/dev/null)
+DEPFLAGS = -MT $@ -MMD -MP -MF $(DEPDIR)/$*.Td
+
+POSTCOMPILE = mv -f $(DEPDIR)/$*.Td $(DEPDIR)/$*.d
 
 RM = rm -rf
 
@@ -17,17 +24,32 @@ OBJS = $(addprefix $(OBJDIR),$(SRCS1:.cpp=.o))
 all: $(PROJECTNAME)
 
 $(PROJECTNAME): $(OBJS)
-		$(COMPILER) $(OBJS) $(LDFLAGS) -o $(PROJECTNAME)
+	@echo Linking $<...
+	@$(CUDA_COMPILER) $(OBJS) $(LDFLAGS) -o $(PROJECTNAME)
+
 
 $(OBJDIR)%.o: %.cpp
-		@mkdir -p $(@D)
-			$(COMPILER) $(CPPFLAGS) $(INC) -c $< -o $@
+$(OBJDIR)%.o: %.cpp $(DEPDIR)/%.d
+	@echo Compiling $<...
+	@mkdir -p $(@D)
+	@mkdir -p $(DEPDIR)/$(*D)
+	$(COMPILER) $(DEPFLAGS) $(CPPFLAGS) $(INC) -c $< -o $@
+	@$(POSTCOMPILE)
 
 $(OBJDIR)%.o: %.cu
-		@mkdir -p $(@D)
-			$(COMPILER) $(CPPFLAGS) $(INC) -c $< -o $@
+#$(OBJDIR)%.o: %.cu $(DEPDIR)/%.d
+	@echo Compiling $<...
+	@mkdir -p $(@D)
+	$(CUDA_COMPILER) $(CPPFLAGS) $(INC) -c $< -o $@
+	$(CUDA_COMPILER) $(CPPFLAGS) $(INC) -E -Xcompiler "-isystem $(CUDA_INSTALL_PATH)/include -MM" $< -o $(DEPDIR)/$*.Td
+	@$(POSTCOMPILE)
+
+$(DEPDIR)/%.d: ;
+.PRECIOUS: $(DEPDIR)/%.d
+
+-include $(patsubst %,$(DEPDIR)/%.d,$(basename $(SRCS)))
 
 clean:
-		$(RM) $(OBJDIR)* $(PROJECTNAME)
+		$(RM) $(OBJDIR)* $(PROJECTNAME) $(DEPDIR)/*
 
 clear: clean $(PCA_ICP)
