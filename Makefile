@@ -40,6 +40,7 @@ $(OBJDIR)%.o: %.cu
 #$(OBJDIR)%.o: %.cu $(DEPDIR)/%.d
 	@echo Compiling $<...
 	@mkdir -p $(@D)
+	@mkdir -p $(DEPDIR)/$(*D)
 	$(CUDA_COMPILER) $(CPPFLAGS) $(INC) -c $< -o $@
 	$(CUDA_COMPILER) $(CPPFLAGS) $(INC) -E -Xcompiler "-isystem $(CUDA_INSTALL_PATH)/include -MM" $< -o $(DEPDIR)/$*.Td
 	@$(POSTCOMPILE)

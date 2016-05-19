@@ -11,7 +11,7 @@
 int objTest() {
 	std::vector<vec3> vertices1;
 	const unsigned int numDimensions = 3;
-	const unsigned int numElements1 = loadObj("res/untitled.obj", &vertices1);
+	unsigned int numElements1 = loadObj("res/untitled.obj", &vertices1);
 
 	std::vector<vec3> vertices2;
 	loadObj("res/untitled.obj", &vertices2);
@@ -29,7 +29,7 @@ int objTest() {
 		pointList2[i*numDimensions + 2] = &vertices2[0].z;
 	}
 
-	float testRotation[9] = {0,0,-1,0,1,0,1,0,0};
+	float testRotation[9] = {1,0,0,0,0,-1,0,1,0};
 	rotateMatrix(numElements1, numDimensions, *pointList2, testRotation);
 
 	std::cout << "First:" << std::endl;
@@ -37,6 +37,14 @@ int objTest() {
 	std::cout << std::endl;
 	std::cout << "Second:" << std::endl;
 	printMatrix(numElements1, numDimensions, *pointList2);
+
+	float distance1[3];
+	findOriginDistance(numElements1, numDimensions, *pointList1, distance1);
+	translate(numElements1, numDimensions, *pointList1, distance1);
+
+	float distance2[3];
+	findOriginDistance(numElements1, numDimensions, *pointList2, distance2);
+	translate(numElements1, numDimensions, *pointList2, distance2);
 
 	float covariance[numDimensions * numDimensions];
 	memset(covariance, 0, sizeof(float)*numDimensions*numDimensions);

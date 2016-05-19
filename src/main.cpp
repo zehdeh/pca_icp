@@ -14,6 +14,6 @@
 int main(int argc, char** argv) {
 	//return pclTest(argc, argv);
 	//return cubesTest();
-	//return cudaTest();
-	return objTest();
+	return cudaTest();
+	//return objTest();
 }

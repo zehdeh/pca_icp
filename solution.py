@@ -21,12 +21,25 @@ def rigid_transform_3D(A, B):
 
     # dot is matrix multiplication for array
     H = transpose(AA) * BB
+    #H = numpy.matrix("""0.132861 0.265722 0.797168;
+    #0.265722 0.531443 0.265722;
+    #0.797166 -0.265722 -0.132861
+    #""")
     print 'covariance:'
     print H
 
     U, S, Vt = linalg.svd(H)
 
     R = Vt.T * U.T
+
+    print 'Vt.T:'
+    print Vt.T
+
+    print 'U.T:'
+    print U.T
+
+    print 'R:'
+    print R
 
     # special reflection case
     if linalg.det(R) < 0:
@@ -35,6 +48,8 @@ def rigid_transform_3D(A, B):
        R = Vt.T * U.T
 
     t = -R*centroid_A.T + centroid_B.T
+    print 'R:'
+    print R
 
     #print t
 
@@ -44,7 +59,7 @@ def rigid_transform_3D(A, B):
 
 # Random rotation and translation
 #R = mat(random.rand(3,3))
-R = numpy.matrix('0 0 -1; 0 1 0; 1 0 0')
+R = numpy.matrix('1 0 0; 0 0 -1; 0 1 0')
 t = numpy.matrix('0; 0; 0')#mat(random.rand(3,1))
 
 # make R a proper rotation matrix, force orthonormal
@@ -118,7 +133,7 @@ A = numpy.matrix("""5.26665 3.39849 3.87546;
 5.2096 3.43431 3.93252;
 5.2096 3.43431 4.6334
 """)
-B = R*A.T + tile(t, (1, n))
+B = R*A.T# + tile(t, (1, n))
 B = B.T;
 #B = numpy.matrix('0 0 0; 1 0 0; 1 1 0; 0 1 0; 0 0 2; 1 0 2; 1 1 2; 0 1 2')
 print "Points A"
