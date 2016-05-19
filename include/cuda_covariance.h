@@ -1,7 +1,7 @@
 #ifndef CUDA_COVARIANCE_HEADER
 #define CUDA_COVARIANCE_HEADER
 
-void cuda_initPointList(const unsigned int numElements, const unsigned int numDimensions, const float* const pointList, float* d_pointList);
+void cuda_initPointLists(const unsigned int numElements, const unsigned int numDimensions, const float* const pointList1, const float* const pointList2);
 void cuda_destroyPointList(float* d_pointList);
 void cuda_downloadPointList(const unsigned numElements, const unsigned int numDimensions, float* pointList, float* d_pointList);
 void cuda_findOriginDistance(const unsigned int numElements, const unsigned int numDimensions, const float* const pointList, float* centroid);

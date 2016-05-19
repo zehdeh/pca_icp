@@ -10,6 +10,7 @@ __global__ void kernel_translate(const unsigned int numElements, const unsigned 
 __global__ void kernel_transpose(const unsigned int numElements, const unsigned int numDimensions, const float* const pointList, float* const pointListTransposed);
 __global__ void kernel_findCovariance(const unsigned int numElements, const unsigned int numDimensions, const float* const pointList1, const float* const pointList2, float* const covariance);
 
+//FIXME: Do not rely on static variables here
 float* d_pointList1;
 float* d_pointList2;
 
@@ -17,16 +18,19 @@ float** getDevicePointList1() {
 	return &d_pointList1;
 }
 float** getDevicePointList2() {
-	return &d_pointList1;
+	return &d_pointList2;
 }
 
-void cuda_initPointList(const unsigned int numElements, const unsigned int numDimensions, const float* const pointList, float* d_pointList) {
+void cuda_initPointLists(const unsigned int numElements, const unsigned int numDimensions, const float* const pointList1, const float* const pointList2) {
 	size_t bytes = numDimensions*numElements*sizeof(float);
 
 	gpuErrchk(cudaSetDevice(0));
 
-	gpuErrchk(cudaMalloc(&d_pointList, bytes));
-	gpuErrchk(cudaMemcpy(d_pointList, pointList, bytes, cudaMemcpyHostToDevice));
+	gpuErrchk(cudaMalloc(&d_pointList1, bytes));
+	gpuErrchk(cudaMemcpy(d_pointList1, pointList1, bytes, cudaMemcpyHostToDevice));
+
+	gpuErrchk(cudaMalloc(&d_pointList2, bytes));
+	gpuErrchk(cudaMemcpy(d_pointList2, pointList2, bytes, cudaMemcpyHostToDevice));
 }
 void cuda_destroyPointList(float* d_pointList) {
 	cudaFree(d_pointList);
@@ -36,13 +40,11 @@ void cuda_downloadPointList(const unsigned numElements, const unsigned int numDi
 	size_t bytes = numDimensions*numElements*sizeof(float);
 
 	gpuErrchk(cudaMemcpy(pointList, d_pointList, bytes, cudaMemcpyDeviceToHost));
-	gpuErrchk(cudaMemcpy(pointList, d_pointList, bytes, cudaMemcpyDeviceToHost));
 }
 
 void cuda_findOriginDistance(const unsigned int numElements, const unsigned int numDimensions, const float* const d_pointList, float* centroid) {
 	size_t bytesCentroid = numDimensions*sizeof(float);
 	float* d_centroid;
-	std::cout << bytesCentroid << std::endl;
 
 	gpuErrchk(cudaMalloc(&d_centroid, bytesCentroid));
 	gpuErrchk(cudaMemset(d_centroid, 0, bytesCentroid));
@@ -57,7 +59,6 @@ void cuda_findOriginDistance(const unsigned int numElements, const unsigned int 
 
 	gpuErrchk(cudaMemcpy(centroid, d_centroid, bytesCentroid, cudaMemcpyDeviceToHost));
 	gpuErrchk(cudaFree(d_centroid));
-
 }
 
 void cuda_translate(const unsigned int numElements, const unsigned int numDimensions, float* const d_pointList, float* const centroid) {

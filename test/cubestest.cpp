@@ -40,10 +40,14 @@ int cubesTest() {
 	float distance1[3];
 	findOriginDistance(numElements, numDimensions, pointList1, distance1);
 	translate(numElements, numDimensions, pointList1, distance1);
+	std::cout << "Centroids:" << std::endl;
+	std::cout << distance1[0] << " " << distance1[1] << " " << distance1[2] << std::endl;
 
 	float distance2[3];
 	findOriginDistance(numElements, numDimensions, pointList2, distance2);
 	translate(numElements, numDimensions, pointList2, distance2);
+
+	std::cout << distance2[0] << " " << distance2[1] << " " << distance2[2] << std::endl;
 
 	std::cout << std::endl;
 	std::cout << "AFTER CENTERING" << std::endl;
