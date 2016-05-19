@@ -1,10 +1,11 @@
 #include "cubestest.h"
 
+#include <cstring>
 #include <iostream>
 #include "util.h"
 #include "svd.h"
 
-void cubesTest() {
+int cubesTest() {
 	const unsigned int numElements = 8;
 	const unsigned int numDimensions = 3;
 	float* pointList1 = new float[numElements*numDimensions];
@@ -51,9 +52,16 @@ void cubesTest() {
 	std::cout << std::endl;
 	std::cout << "Second:" << std::endl;
 	printMatrix(numElements, numDimensions, pointList2);
+	
+	float covariance[numDimensions * numDimensions];
+	memset(covariance, 0, sizeof(float)*numDimensions*numDimensions);
+	findCovariance(numElements, numDimensions, pointList1, pointList2, covariance);
+
+	std::cout << "Covariance:" << std::endl;
+	printMatrix(numDimensions, numDimensions, covariance);
 
 	rotationMatrix rotation;
-	svdMethod(numElements, numDimensions, pointList1, pointList2, rotation);
+	svdMethod(numDimensions, covariance, rotation);
 
 	std::cout << std::endl;
 	std::cout << "Rotation matrix:" << std::endl;
@@ -68,4 +76,6 @@ void cubesTest() {
 	std::cout << std::endl;
 	std::cout << "Second:" << std::endl;
 	printMatrix(numElements, numDimensions, pointList2);
+
+	return 0;
 }

@@ -78,7 +78,7 @@ void translate(const unsigned int numElements, const unsigned int numDimensions,
 	}
 }
 
-void transpose(const unsigned int numElements, const unsigned int numDimensions, float* const pointList, float* const pointListTransposed) {
+void transpose(const unsigned int numElements, const unsigned int numDimensions, const float* const pointList, float* const pointListTransposed) {
 	for(unsigned int i = 0; i < numElements * numDimensions; i++) {
 		unsigned int j = i / numElements;
 		unsigned int k = i % numElements;

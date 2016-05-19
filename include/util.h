@@ -6,6 +6,6 @@ void printMatrix(const unsigned int m, const unsigned int n, const float* const 
 float matrixRMSE(const unsigned int m, const unsigned int n, const float* matrix1, const float* matrix2);
 void findOriginDistance(const unsigned int numElements, const unsigned int numDimensions, const float* const pointList, float* const distance);
 void translate(const unsigned int numElements, const unsigned int numDimensions, float* const pointList, float* t);
-void transpose(const unsigned int numElements, const unsigned int numDimensions, float* const pointList, float* const pointListTransposed);
+void transpose(const unsigned int numElements, const unsigned int numDimensions, const float* const pointList, float* const pointListTransposed);
 
 #endif

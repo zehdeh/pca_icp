@@ -10,9 +10,25 @@
 #include <pcl/filters/statistical_outlier_removal.h>
 #include <pcl/common/centroid.h>
 
+static pcl::PointCloud<pcl::PointNormal>::Ptr input(new pcl::PointCloud<pcl::PointNormal>);
+static pcl::PointCloud<pcl::PointNormal>::Ptr demeaned(new pcl::PointCloud<pcl::PointNormal>);
+
+bool displayFiltered = true;
+
 void mouseEventOccurred(const pcl::visualization::MouseEvent &event, void* viewer_void) {
 	if(event.getButton() == pcl::visualization::MouseEvent::RightButton && event.getType() == pcl::visualization::MouseEvent::MouseButtonRelease) {
+		boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer = *static_cast<boost::shared_ptr<pcl::visualization::PCLVisualizer> *> (viewer_void);
 		std::cout << "Right mouse button released!" << std::endl;
+
+		viewer->removeAllPointClouds();
+		if(displayFiltered) {
+			viewer->addPointCloud<pcl::PointNormal>(input, "sample cloud");
+			viewer->addPointCloudNormals<pcl::PointNormal, pcl::PointNormal>(input,input,1,2.0f);
+		} else {
+			viewer->addPointCloud<pcl::PointNormal>(demeaned, "sample cloud");
+			viewer->addPointCloudNormals<pcl::PointNormal, pcl::PointNormal>(demeaned,demeaned,1,2.0f);
+		}
+		displayFiltered = !displayFiltered;
 	}
 }
 
@@ -22,7 +38,6 @@ int pclTest(const int argc, char** const argv) {
 		std::cout << "Please specify an .OBJ-file!" << std::endl;
 		return -1;
 	}
-	pcl::PointCloud<pcl::PointNormal>::Ptr input(new pcl::PointCloud<pcl::PointNormal>);
 
 	if(pcl::io::loadOBJFile(argv[1], *input) == -1) {
 		PCL_ERROR("Couldn't read file!\n");
@@ -38,7 +53,7 @@ int pclTest(const int argc, char** const argv) {
 	condrem.setCondition(range_cond);
 	condrem.setInputCloud(input);
 	condrem.setKeepOrganized(true);
-	condrem.filter(*input);
+	condrem.filter(*demeaned);
 
 	// Conditional removal: every normal -0.5 < n_x < 0.5
 	pcl::ConditionOr<pcl::PointNormal>::Ptr range_cond2(new pcl::ConditionOr<pcl::PointNormal>());
@@ -49,22 +64,21 @@ int pclTest(const int argc, char** const argv) {
 		new pcl::FieldComparison<pcl::PointNormal>("normal_x", pcl::ComparisonOps::LT, -0.5))
 	);
 	condrem.setCondition(range_cond2);
-	condrem.setInputCloud(input);
+	condrem.setInputCloud(demeaned);
 	condrem.setKeepOrganized(true);
-	condrem.filter(*input);
+	condrem.filter(*demeaned);
 	
 	// Remove statistical outliers: neighbour distance > 2.0
 	pcl::StatisticalOutlierRemoval<pcl::PointNormal> sor;
-	sor.setInputCloud(input);
+	sor.setInputCloud(demeaned);
 	sor.setMeanK(50);
 	sor.setStddevMulThresh(2.0);
-	sor.filter(*input);
+	sor.filter(*demeaned);
 
 	// Center cloud
 	Eigen::Vector4f centroid;
-	pcl::PointCloud<pcl::PointNormal>::Ptr demeaned(new pcl::PointCloud<pcl::PointNormal>);
-	pcl::compute3DCentroid(*input, centroid);
-	pcl::demeanPointCloud(*input, centroid, *demeaned);
+	pcl::compute3DCentroid(*demeaned, centroid);
+	pcl::demeanPointCloud(*demeaned, centroid, *demeaned);
 
 	//pcl::PointCloud<pcl::PointXYZ>
 
@@ -126,15 +140,15 @@ int pclTest(const int argc, char** const argv) {
 	std::cout << "Mean left plane: " << planeMeanXLeft << std::endl;
 	std::cout << "Mean right plane: " << planeMeanXLeft << std::endl;
 
-	pcl::visualization::PCLVisualizer viewer("Simple Cloud Viewer");
-	viewer.addPointCloud<pcl::PointNormal>(demeaned, "sample cloud");
-	viewer.addPointCloudNormals<pcl::PointNormal, pcl::PointNormal>(demeaned,demeaned,1,2.0f);
-	viewer.addCoordinateSystem(1.0);
-	viewer.initCameraParameters();
-	viewer.registerMouseCallback(mouseEventOccurred, (void*)&viewer);
+	boost::shared_ptr<pcl::visualization::PCLVisualizer> viewer(new pcl::visualization::PCLVisualizer("Simple Cloud Viewer"));
+	viewer->addPointCloud<pcl::PointNormal>(demeaned, "sample cloud");
+	viewer->addPointCloudNormals<pcl::PointNormal, pcl::PointNormal>(demeaned,demeaned,1,2.0f);
+	viewer->addCoordinateSystem(1.0);
+	viewer->initCameraParameters();
+	viewer->registerMouseCallback(mouseEventOccurred, (void*)&viewer);
 
-	while(!viewer.wasStopped()) {
-		viewer.spinOnce(100);
+	while(!viewer->wasStopped()) {
+		viewer->spinOnce(100);
 		boost::this_thread::sleep (boost::posix_time::microseconds (100000));
 	}
 	

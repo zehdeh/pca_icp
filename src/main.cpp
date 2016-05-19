@@ -12,6 +12,7 @@
 
 
 int main(int argc, char** argv) {
-	return pclTest(argc, argv);
-	//return cudaTest();
+	//return pclTest(argc, argv);
+	//return cubesTest();
+	return cudaTest();
 }

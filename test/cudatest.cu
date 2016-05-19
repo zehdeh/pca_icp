@@ -67,6 +67,21 @@ __global__ void cuda_transpose(const unsigned int numElements, const unsigned in
 
 __global__ void cuda_findCovariance(const unsigned int numElements, const unsigned int numDimensions, const float* const pointList1, const float* const pointList2, float* const covariance) {
 	const unsigned int i = blockIdx.x*blockDim.x + threadIdx.x;
+
+	if(i < numDimensions*numDimensions*numElements) {
+
+		const unsigned int cov_j = i % numElements;
+		const unsigned int cov_i = i / numElements;
+		const unsigned int x = cov_i % numDimensions;
+		const unsigned int y = cov_i / numDimensions;
+
+		__syncthreads();
+
+		const float elem = pointList1[y+cov_j*numDimensions]*pointList2[x + cov_j*numDimensions];
+		atomicAdd(&covariance[y*numDimensions + x], elem);
+		
+		__syncthreads();
+	}
 }
 
 int cudaTest() {
@@ -130,7 +145,7 @@ int cudaTest() {
 	int blockSize, gridSize;
 
 	blockSize = 1024;
-	gridSize = (int)ceil((float)maxNumElements/blockSize);
+	gridSize = (int)ceil((float)numDimensions*maxNumElements/blockSize);
 
 	cudaEventRecord(start);
 	cuda_findOriginDistance<<<gridSize, blockSize>>>(numElements1, numDimensions, d_pointList1, d_centroid1);
@@ -151,7 +166,7 @@ int cudaTest() {
 	std::cout << centroid2[0] << " " << centroid2[1] << " " << centroid2[2] << std::endl;
 
 	cuda_translate<<<gridSize, blockSize>>>(numElements1, numDimensions, d_pointList1, d_centroid1);
-	cuda_translate<<<gridSize, blockSize>>>(numElements2, numDimensions, d_pointList2, d_centroid1);
+	cuda_translate<<<gridSize, blockSize>>>(numElements2, numDimensions, d_pointList2, d_centroid2);
 
 	cudaMemcpy(pointList1, d_pointList1, bytes1, cudaMemcpyDeviceToHost);
 	cudaMemcpy(pointList2, d_pointList2, bytes2, cudaMemcpyDeviceToHost);
@@ -162,8 +177,9 @@ int cudaTest() {
 	std::cout << "Second:" << std::endl;
 	printMatrix(numElements2, numDimensions, pointList2);
 
+	/*
 	float pointList1Transposed[numElements1*numDimensions];
-	//memset(pointList1Transposed, 0, sizeof(float)*numElements1*numDimensions);
+	memset(pointList1Transposed, 0, sizeof(float)*numElements1*numDimensions);
 
 	float* d_pointList1Transposed;
 	gpuErrchk(cudaMalloc(&d_pointList1Transposed, bytes1));
@@ -177,6 +193,23 @@ int cudaTest() {
 	printMatrix(numDimensions, numElements1, pointList1Transposed);
 	
 	cudaFree(d_pointList1Transposed);
+	*/
+	float* d_covariance;
+	float covariance[numDimensions*numDimensions];
+	memset(covariance, 0, sizeof(float)*numDimensions*numDimensions);
+
+	size_t bytesCovariance = sizeof(float)*numDimensions*numDimensions;
+	gpuErrchk(cudaMalloc(&d_covariance, bytesCovariance));
+	gpuErrchk(cudaMemset(d_covariance, 0, bytesCovariance));
+	gridSize = (int)ceil((float)numDimensions*numDimensions*maxNumElements/blockSize);
+
+	cuda_findCovariance<<<gridSize, blockSize>>>(maxNumElements, numDimensions, d_pointList1, d_pointList2, d_covariance);
+
+	cudaMemcpy(covariance, d_covariance, bytesCovariance, cudaMemcpyDeviceToHost);
+	std::cout << "number of threads: " << (gridSize*blockSize) << std::endl;
+	std::cout << "NumElements: " << maxNumElements << std::endl;
+	std::cout << "Covariance: " << std::endl;
+	printMatrix(numDimensions, numDimensions, covariance);
 	
 	cudaFree(d_centroid1);
 	cudaFree(d_centroid2);
