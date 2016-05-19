@@ -43,6 +43,9 @@ void svdMethod(const unsigned int numDimensions, float* const covariance, rotati
 	std::cout << "Determinant " << R.determinant() << std::endl;
 	if(R.determinant() < 0) {
 		std::cout << "Reflection detected!" << std::endl;
+		Eigen::MatrixXf V = svd.matrixV();
+		V.row(2) = V.row(2)*-1;
+		R = V * svd.matrixU().transpose();
 	}
 
 	// Not quite sure why we need to transpose here, but thats the right solution

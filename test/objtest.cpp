@@ -11,10 +11,10 @@
 int objTest() {
 	std::vector<vec3> vertices1;
 	const unsigned int numDimensions = 3;
-	unsigned int numElements1 = loadObj("res/untitled.obj", &vertices1);
+	unsigned int numElements1 = loadObj("res/cube/CubeCalib_01.000001.obj", &vertices1);
 
 	std::vector<vec3> vertices2;
-	loadObj("res/untitled.obj", &vertices2);
+	loadObj("res/cube/CubeCalib_01.000001.obj", &vertices2);
 
 	//static_assert(numElements1 == numElements2, "The number of points do not match!");
 	float* pointList1[numElements1*numDimensions];

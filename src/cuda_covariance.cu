@@ -24,6 +24,10 @@ float** getDevicePointList2() {
 void cuda_initPointLists(const unsigned int numElements, const unsigned int numDimensions, const float* const pointList1, const float* const pointList2) {
 	size_t bytes = numDimensions*numElements*sizeof(float);
 
+	int nDevices = 0;
+	cudaGetDeviceCount(&nDevices);
+	std::cout << nDevices << std::endl;
+
 	gpuErrchk(cudaSetDevice(0));
 
 	gpuErrchk(cudaMalloc(&d_pointList1, bytes));

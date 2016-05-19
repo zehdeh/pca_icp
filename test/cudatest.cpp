@@ -18,7 +18,7 @@ int cudaTest() {
 	const unsigned int maxNumElements = std::max(numElements1, numElements2);
 
 	std::vector<vec3> vertices2;
-	loadObj("res/untitled.obj", &vertices2);
+	loadObj("res/cube/CubeCalib_01.000001.obj", &vertices2);
 
 	//static_assert(numElements1 == numElements2, "The number of points do not match!");
 	float* pointList1[numElements1*numDimensions];
@@ -32,6 +32,9 @@ int cudaTest() {
 		pointList2[i*numDimensions + 1] = &vertices2[0].y;
 		pointList2[i*numDimensions + 2] = &vertices2[0].z;
 	}
+	
+	float testRotation[9] = {1,0,0,0,0,-1,0,1,0};
+	rotateMatrix(numElements1, numDimensions, *pointList2, testRotation);
 	/*
 	const unsigned int numElements1 = 8;
 	const unsigned int numElements2 = 8;
