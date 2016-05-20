@@ -25,7 +25,7 @@ all: $(PROJECTNAME)
 
 $(PROJECTNAME): $(OBJS)
 	@echo Linking $<...
-	@$(CUDA_COMPILER) $(OBJS) $(LDFLAGS) -o $(PROJECTNAME)
+	@$(CUDA_COMPILER) $(OBJS) $(LDFLAGS) -o $(PROJECTNAME).run
 
 
 $(OBJDIR)%.o: %.cpp

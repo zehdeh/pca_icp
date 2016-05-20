@@ -5,6 +5,8 @@
 *.obj
 obj/
 .d/
+res/
+*.run
 
 # Precompiled Headers
 *.gch
