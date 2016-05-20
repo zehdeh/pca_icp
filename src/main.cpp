@@ -8,15 +8,15 @@
 #include "objtest.h"
 #include "pcltest.h"
 #include "cuda_objtest.h"
-
-
+#include "kdtreetest.h"
 
 int main(int argc, char** argv) {
 	//return pclTest(argc, argv);
 	//return cubesTest();
-	objTest();
-	std::cout << "=====================" << std::endl;
-	cuda_objTest();
+	//objTest();
+	//std::cout << "=====================" << std::endl;
+	//cuda_objTest();
+	kdTreeTest();
 
 	return 0;
 }
