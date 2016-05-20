@@ -5,7 +5,7 @@
 
 #include "cuda_util.h"
 
-__global__ void kernel_findOriginDistance(const unsigned int numElements, const unsigned int numDimensions, const float* pointList, float* centroid);
+__global__ void kernel_findOriginDistance(const unsigned int numElements, const unsigned int numDimensions, const float* const pointList, float* const centroid);
 __global__ void kernel_translate(const unsigned int numElements, const unsigned int numDimensions, float* pointList, float* vec);
 __global__ void kernel_transpose(const unsigned int numElements, const unsigned int numDimensions, const float* const pointList, float* const pointListTransposed);
 __global__ void kernel_findCovariance(const unsigned int numElements, const unsigned int numDimensions, const float* const pointList1, const float* const pointList2, float* const covariance);
@@ -23,10 +23,6 @@ float** getDevicePointList2() {
 
 void cuda_initPointLists(const unsigned int numElements, const unsigned int numDimensions, const float* const pointList1, const float* const pointList2) {
 	size_t bytes = numDimensions*numElements*sizeof(float);
-
-	int nDevices = 0;
-	cudaGetDeviceCount(&nDevices);
-	std::cout << nDevices << std::endl;
 
 	gpuErrchk(cudaSetDevice(0));
 
@@ -57,9 +53,19 @@ void cuda_findOriginDistance(const unsigned int numElements, const unsigned int 
 	blockSize = 1024;
 	gridSize = (int)ceil((float)numDimensions*numElements/blockSize);
 
+	cudaEvent_t start;
+	cudaEvent_t stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+
+	cudaEventRecord(start);
 	kernel_findOriginDistance<<<gridSize, blockSize>>>(numElements, numDimensions, d_pointList, d_centroid);
-	gpuErrchk( cudaPeekAtLastError() );
-	gpuErrchk( cudaDeviceSynchronize() );
+	cudaEventRecord(stop);
+
+	cudaEventSynchronize(stop);
+	float milliseconds = 0;
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	std::cout << "Computing centroid took " << milliseconds << " ms" << std::endl;
 
 	gpuErrchk(cudaMemcpy(centroid, d_centroid, bytesCentroid, cudaMemcpyDeviceToHost));
 	gpuErrchk(cudaFree(d_centroid));
@@ -94,15 +100,34 @@ void cuda_findCovariance(const unsigned int numElements, const unsigned int numD
 	int blockSize, gridSize;
 	blockSize = 1024;
 	gridSize = (int)ceil((float)numDimensions*numDimensions*numElements/blockSize);
+	cudaEvent_t start;
+	cudaEvent_t stop;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+
+	cudaEventRecord(start);
 
 	kernel_findCovariance<<<gridSize, blockSize>>>(numElements, numDimensions, d_pointList1, d_pointList2, d_covariance);
+	cudaEventRecord(stop);
+
+	cudaEventSynchronize(stop);
+	float milliseconds = 0;
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	std::cout << "Computing covariance took " << milliseconds << " ms" << std::endl;
 
 	gpuErrchk(cudaMemcpy(covariance, d_covariance, bytesCovariance, cudaMemcpyDeviceToHost));
 	gpuErrchk(cudaFree(d_covariance));
 }
 
-__global__ void kernel_findOriginDistance(const unsigned int numElements, const unsigned int numDimensions, const float* pointList, float* centroid) {
+__global__ void kernel_findOriginDistance(const unsigned int numElements, const unsigned int numDimensions, const float* const pointList, float* const centroid) {
 	const int i = blockIdx.x*blockDim.x + threadIdx.x;
+
+/*
+	if(i < numElements * numDimensions) {
+		int sumIdx = i % 3;
+		atomicAdd(&centroid[sumIdx], pointList[i]);
+	}
+	*/
 
 	__shared__ float sum[3];
 	if(threadIdx.x == 0) {
@@ -114,20 +139,13 @@ __global__ void kernel_findOriginDistance(const unsigned int numElements, const 
 	__syncthreads();
 	if(i < numElements * numDimensions) {
 		int sumIdx = i % 3;
-		atomicAdd(&sum[sumIdx], pointList[i]);
+		atomicAdd(&sum[sumIdx], pointList[i] / numElements);
 	}
 	__syncthreads();
 	if(threadIdx.x == 0) {
 		atomicAdd(&centroid[0], sum[0]);
 		atomicAdd(&centroid[1], sum[1]);
 		atomicAdd(&centroid[2], sum[2]);
-	}
-
-	__syncthreads();
-	if(blockIdx.x == 0 && threadIdx.x == 0) {
-		centroid[0] = centroid[0] / numElements;
-		centroid[1] = centroid[1] / numElements;
-		centroid[2] = centroid[2] / numElements;
 	}
 }
 

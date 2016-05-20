@@ -7,13 +7,16 @@
 #include "cubestest.h"
 #include "objtest.h"
 #include "pcltest.h"
-#include "cudatest.h"
+#include "cuda_objtest.h"
 
 
 
 int main(int argc, char** argv) {
 	//return pclTest(argc, argv);
 	//return cubesTest();
-	return cudaTest();
-	//return objTest();
+	objTest();
+	std::cout << "=====================" << std::endl;
+	cuda_objTest();
+
+	return 0;
 }

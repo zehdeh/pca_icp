@@ -1,6 +1,6 @@
 #ifndef CUDATEST_HEADER
 #define CUDATEST_HEADER
 
-int cudaTest();
+int cuda_objTest();
 
 #endif
