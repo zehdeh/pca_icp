@@ -57,7 +57,6 @@ int objTest() {
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	std::cout << "Computing centroid took " << milliseconds << " ms" << std::endl;
-	translate(numElements1, numDimensions, *pointList1, distance1);
 
 	float distance2[3];
 	cudaEventRecord(start);
@@ -67,9 +66,24 @@ int objTest() {
 	cudaEventSynchronize(stop);
 	cudaEventElapsedTime(&milliseconds, start, stop);
 	std::cout << "Computing centroid took " << milliseconds << " ms" << std::endl;
-	std::cout << "Centroids:" << std::endl;
 
+	cudaEventRecord(start);
+	translate(numElements1, numDimensions, *pointList1, distance1);
+	cudaEventRecord(stop);
+
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	std::cout << "Translating took " << milliseconds << " ms" << std::endl;
+
+	cudaEventRecord(start);
 	translate(numElements1, numDimensions, *pointList2, distance2);
+	cudaEventRecord(stop);
+
+	cudaEventSynchronize(stop);
+	cudaEventElapsedTime(&milliseconds, start, stop);
+	std::cout << "Translating took " << milliseconds << " ms" << std::endl;
+
+	std::cout << "Centroids:" << std::endl;
 	std::cout << distance1[0] << " " << distance1[1] << " " << distance1[2] << std::endl;
 	std::cout << distance2[0] << " " << distance2[1] << " " << distance2[2] << std::endl;
 
