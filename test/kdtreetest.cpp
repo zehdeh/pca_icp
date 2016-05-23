@@ -17,10 +17,14 @@ int kdTreeTest() {
 	2,7,0,
 	1,8,0};
 
-	quicksort(numElements, numDimensions, pointList, 0);
 
-	printMatrix(numElements, numDimensions, pointList);
+	buildKdTree(numElements, numDimensions, pointList, 0);
+	//quicksort(numElements, numDimensions, pointList, 0);
 
-	quicksort(numElements, numDimensions, pointList, 1);
-	printMatrix(numElements, numDimensions, pointList);
+	//printMatrix(numElements, numDimensions, pointList);
+
+
+	//quicksort(numElements, numDimensions, pointList, 1);
+	//printMatrix(numElements, numDimensions, pointList);
+	return 0;
 }
