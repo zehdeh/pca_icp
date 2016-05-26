@@ -17,8 +17,13 @@ int kdTreeTest() {
 	2,7,0,
 	1,8,0};
 
+	float* pointListPointers[numElements*numDimensions];
+	for(unsigned int i = 0; i < numElements*numDimensions; i++) {
+		pointListPointers[i] = &pointList[i];
+	}
 
-	buildKdTree(numElements, numDimensions, pointList, 0);
+
+	//buildKdTree(numElements, numDimensions, pointListPointers, 0);
 	//quicksort(numElements, numDimensions, pointList, 0);
 
 	//printMatrix(numElements, numDimensions, pointList);
