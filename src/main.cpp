@@ -12,11 +12,11 @@
 
 int main(int argc, char** argv) {
 	//return pclTest(argc, argv);
-	//return cubesTest();
+	return cubesTest();
 	//objTest();
 	//std::cout << "=====================" << std::endl;
 	//cuda_objTest();
-	kdTreeTest();
+	//kdTreeTest();
 
 	return 0;
 }
