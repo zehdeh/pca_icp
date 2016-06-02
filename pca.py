@@ -28,8 +28,6 @@ A = numpy.matrix('0.0 0.0 0.0; 2.0 0.0 0.0; 2.0 1.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.
 B = R*A.T
 B = B.T
 
-print B
-
 N = A.shape[0];
 
 C = numpy.cov(A)
@@ -45,6 +43,10 @@ ax = fig.add_subplot(111, projection='3d')
 
 cov1 = cov(AA, rowvar=0)
 cov2 = cov(BB, rowvar=0)
+print 'Covariance 1:'
+print cov1
+print 'Covariance 2:'
+print cov2
 
 eig_val_cov1,eig_vec_cov1 = linalg.eig(cov1)
 eig_val_cov2,eig_vec_cov2 = linalg.eig(cov2)
