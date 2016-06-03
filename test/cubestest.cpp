@@ -11,8 +11,8 @@ struct eigen {
 	float value;
 	float vector[3];
 
-	bool operator<(eigen const &other) const {
-		return value < other.value;
+	bool operator>(eigen const &other) const {
+		return value > other.value;
 	}
 	void operator=(eigen const &e) {
 		vector[0] = e.vector[0];
@@ -55,7 +55,7 @@ void findEigenvectors(float* const covariance, eigen* e) {
 
 	for(unsigned int i = 1; i < 3; i++) {
 		for(unsigned int j = 0; j < 2; j++) {
-			if(e[j+1] < e[j]) {
+			if(e[j+1] > e[j]) {
 				eigen tmp = e[j];
 				e[j] = e[j+1];
 				e[j+1] = tmp;
@@ -125,11 +125,13 @@ int cubesTest() {
 	float covariance1[numDimensions * numDimensions];
 	memset(covariance1, 0, sizeof(float)*numDimensions*numDimensions);
 	findInnerCovariance(numElements, numDimensions, pointList1, covariance1);
+	std::cout << "Covariance 1:" << std::endl;
 	printMatrix(numDimensions, numDimensions, covariance1);
 
 	float covariance2[numDimensions * numDimensions];
 	memset(covariance2, 0, sizeof(float)*numDimensions*numDimensions);
 	findInnerCovariance(numElements, numDimensions, pointList2, covariance2);
+	std::cout << "Covariance 2:" << std::endl;
 	printMatrix(numDimensions, numDimensions, covariance2);
 
 	eigen e1[3];

@@ -43,13 +43,17 @@ ax = fig.add_subplot(111, projection='3d')
 
 cov1 = cov(AA, rowvar=0)
 cov2 = cov(BB, rowvar=0)
-print 'Covariance 1:'
-print cov1
-print 'Covariance 2:'
-print cov2
+#print 'Covariance 1:'
+#print cov1
+#print 'Covariance 2:'
+#print cov2
 
 eig_val_cov1,eig_vec_cov1 = linalg.eig(cov1)
 eig_val_cov2,eig_vec_cov2 = linalg.eig(cov2)
+
+R2 = eig_vec_cov1*eig_vec_cov2
+
+B2 = B.copy()*R2
 
 for v in eig_vec_cov1.T:
 	un = mean_vectorA + v
@@ -60,5 +64,7 @@ for v in eig_vec_cov2.T:
 	un = mean_vectorB + v
 	a = Arrow3D([mean_vectorB.item(0), un.item(0)], [mean_vectorB.item(1), un.item(1)], [mean_vectorB.item(2), un.item(2)], mutation_scale=20,lw=3)
 	ax.add_artist(a)
+	#print "v:"
+	#print v
+show_points(A,B2,fig,ax)
 
-show_points(A,B,fig,ax)
