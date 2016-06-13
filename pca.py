@@ -30,8 +30,6 @@ B = B.T
 
 N = A.shape[0];
 
-C = numpy.cov(A)
-
 mean_vectorA = mean(A, axis=0)
 mean_vectorB = mean(B, axis=0)
 
@@ -51,16 +49,48 @@ cov2 = cov(BB, rowvar=0)
 eig_val_cov1,eig_vec_cov1 = linalg.eig(cov1)
 eig_val_cov2,eig_vec_cov2 = linalg.eig(cov2)
 
-R2 = eig_vec_cov1*eig_vec_cov2
+#for i in range(3):
+#	eig_vec_cov1[:,i] = eig_vec_cov1[:,i]*eig_val_cov1[i]
+#	eig_vec_cov2[:,i] = eig_vec_cov2[:,i]*eig_val_cov2[i]
 
-B2 = B.copy()*R2
+idx = eig_val_cov1.argsort()[::-1]
+eig_val_cov1 = eig_val_cov1[idx]
+eig_vec_cov1 = eig_vec_cov1[:,idx]
 
-for v in eig_vec_cov1.T:
+idx = eig_val_cov2.argsort()[::-1]
+eig_val_cov2 = eig_val_cov2[idx]
+eig_vec_cov2 = eig_vec_cov2[:,idx]
+
+R2 = numpy.linalg.inv(eig_vec_cov2)
+R1 = eig_vec_cov1
+
+for i in range(3):
+	R2[:,i] = R2[:,i]/numpy.linalg.norm(R2[:,i])
+	R1[:,i] = R1[:,i]/numpy.linalg.norm(R1[:,i])
+print R1
+print R2
+print R
+
+
+B2 = B*R2
+
+#mean_vectorA = mean(A, axis=0)
+#mean_vectorB = mean(B, axis=0)
+#A = A - tile(mean_vectorA, (N, 1))
+#B = B - tile(mean_vectorB, (N, 1))
+
+#eig_vec_cov2 = R2*eig_vec_cov2
+#eig_vec_cov2 = eig_vec_cov2*R1
+#B2 = B2*R1
+
+for i in range(3):
+	v = eig_vec_cov1[:,i]*eig_val_cov1[i]
 	un = mean_vectorA + v
 	a = Arrow3D([mean_vectorA.item(0), un.item(0)], [mean_vectorA.item(1), un.item(1)], [mean_vectorA.item(2), un.item(2)], mutation_scale=20,lw=3)
 	ax.add_artist(a)
 
-for v in eig_vec_cov2.T:
+for i in range(3):
+	v = eig_vec_cov2[:,i]*eig_val_cov2[i]
 	un = mean_vectorB + v
 	a = Arrow3D([mean_vectorB.item(0), un.item(0)], [mean_vectorB.item(1), un.item(1)], [mean_vectorB.item(2), un.item(2)], mutation_scale=20,lw=3)
 	ax.add_artist(a)
