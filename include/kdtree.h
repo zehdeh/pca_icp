@@ -1,57 +1,31 @@
-#ifndef KDNODE_HEADER
-#define KDNODE_HEADER
+#ifndef KDTREE_HEADER
+#define KDTREE_HEADER
 
+#include <iostream>
 #include <vector>
 
-struct point {
-	float coords[3];
+struct Point {
+	float x;
+	float y;
+};
+std::ostream& operator<<(std::ostream& os, const Point& point);
+struct KdNode
+{
+	const static char X = 0;
+	const static char Y = 1;
+	const static char None = 2;
+
+	int PointIdx;
+	int RightChildIdx;
+	char SplitDim;
 };
 
-class KdNode {
-public:
-	void setId(const unsigned int i) { id = i; }
-	const unsigned int getId() const { return id; }
-	const unsigned int getLevel() const { return level; }
-	void setLevel(unsigned int lvl) { level = lvl; }
-	std::vector<unsigned int> indices;
-	KdNode* const getLeft() const { return left; }
-	KdNode* const getRight() const { return right; }
-	void setLeft(KdNode* const l) {
-		left = l; 
-		_left = left->getId();
-	}
-	void setRight(KdNode* const r) {
-		right = r; 
-		_right = right->getId();
-	}
-	void setSplitValue(float s) { splitValue = s; }
-	float getSplitValue() const { return splitValue; }
-	void setParent(KdNode* const p) {
-		parent = p;
-		_parent = parent->getId();
-	}
-private:
-	unsigned int level;
-	KdNode* parent;
-	KdNode* left;
-	KdNode* right;
-	int _parent, _left, _right;
-	unsigned int id;
-	float splitValue;
-};
-
-class KdTree {
-public:
-	KdTree(std::vector<point>& pts);
-private:
-	void split(KdNode* current, KdNode* left, KdNode* right);
-	std::vector<point>* m_points;
-	KdNode* root;
-	int m_id;
-	unsigned int m_currentAxis;
-};
-
-//kdNode* buildKdTree(const unsigned int numElements, const unsigned int numDimensions, float** pointList, const unsigned int depth);
-void quicksort(const unsigned int numElements, const unsigned int numDimensions, float** pointList, unsigned int dimension);
+void cuda_increaseStackSize();
+float randF(const float min, const float max);
+void dumpPart(std::vector<KdNode> &nodes, const std::vector<Point> &points,const int fromNode, const int toNode, const char splitDim);
+std::vector<KdNode> makeKdTree(const std::vector<Point> &points);
+unsigned int findNnBruteForce(const std::vector<Point> &points, const Point& query);
+unsigned int cpu_findNnKd(const std::vector<KdNode> &nodes, const std::vector<Point> &points, const Point &query);
+void cuda_findNnKd(const std::vector<KdNode> &nodes, const std::vector<Point> &points, const std::vector<Point> &queries, std::vector<int>& kdResultsGpu);
 
 #endif

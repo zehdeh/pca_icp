@@ -1,3 +1,5 @@
+#include "kdtree.h"
+
 #include "Tools.h"
 
 #include <vector>
@@ -7,27 +9,19 @@
 
 using namespace std;
 
-#define BF // Don't use for benchmarking!
-#define KD
-#define KD_GPU
-
-/// Numbers for testing
-#define NUM_POINTS 20
-#define NUM_QUERIES 10
-
-/// Numbers for benchmarking
-//#define NUM_POINTS 1000000
-//#define NUM_QUERIES 100000
-
 #define THREADS_PER_BLOCK 512
+
 
 //#define VERBOSE
 
-struct Point
-{
-	float x;
-	float y;
+const char KdNode::X;
+const char KdNode::Y;
 
+struct CudaPoint : Point {
+	__host__ __device__ CudaPoint(const Point& p) {
+		x = p.x;
+		y = p.y;
+	}
 	__host__ __device__ float operator[](const unsigned int index) const
 	{
 		return *((float*) this + index);
@@ -38,7 +32,7 @@ struct Point
 		return *((float*) this + index);
 	}
 
-	__host__ __device__ Point operator-(const Point& other) const
+	__host__ __device__ CudaPoint operator-(const Point& other) const
 	{
 		Point result;
 		result.x = x - other.x;
@@ -59,22 +53,7 @@ std::ostream& operator<<(std::ostream& os, const Point& point)
 	return os;
 }
 
-struct KdNode
-{
-	const static char X = 0;
-	const static char Y = 1;
-	const static char None = 2;
-
-	int PointIdx;
-	int RightChildIdx;
-	char SplitDim;
-};
-
-const char KdNode::X;
-const char KdNode::Y;
-
-struct NodeComparator
-{
+struct NodeComparator {
 	char SplitDim;
 	const vector<Point> &Points;
 
@@ -85,9 +64,13 @@ struct NodeComparator
 
 	bool operator()(const KdNode &i, const KdNode &j)
 	{
-		return (Points[i.PointIdx][SplitDim] < Points[j.PointIdx][SplitDim]);
+		return (((const CudaPoint)Points[i.PointIdx])[SplitDim] < ((const CudaPoint)Points[j.PointIdx])[SplitDim]);
 	}
 };
+
+void cuda_increaseStackSize() {
+	cudaDeviceSetLimit(cudaLimitStackSize, 16 * 1024);
+}
 
 float randF(const float min = 0.0f, const float max = 1.0f)
 {
@@ -180,8 +163,8 @@ vector<KdNode> makeKdTree(const vector<Point> &points)
 unsigned int findNnBruteForce(const vector<Point> &points, const Point& query)
 {
 	unsigned int bestIdx = 0;
-	for (unsigned int p = 1; p < NUM_POINTS; p++)
-		if ((points[p] - query).length() < (points[bestIdx] - query).length())
+	for (unsigned int p = 1; p < points.size(); p++)
+		if (((const CudaPoint)points[p] - (const CudaPoint)query).length() < ((CudaPoint)points[bestIdx] - (CudaPoint)query).length())
 			bestIdx = p;
 
 	return bestIdx;
@@ -191,12 +174,13 @@ __host__ __device__ unsigned int findNnKd(const KdNode* nodes,
 		const Point* points, const unsigned int currentNodeIdx,
 		unsigned int bestPointIdx, const Point &query)
 {
+	const CudaPoint &cudaQuery = (const CudaPoint)query;
 	const KdNode &currentNode = nodes[currentNodeIdx];
-	const Point &currentPoint = points[currentNode.PointIdx];
-	const Point &bestPoint = points[bestPointIdx];
+	const CudaPoint &currentPoint = (const CudaPoint)points[currentNode.PointIdx];
+	const CudaPoint &bestPoint = (const CudaPoint)points[bestPointIdx];
 
 	// Check if current node is closer
-	if ((currentPoint - query).length() < (bestPoint - query).length())
+	if ((currentPoint - cudaQuery).length() < (bestPoint - cudaQuery).length())
 		bestPointIdx = nodes[currentNodeIdx].PointIdx;
 
 	// Base case
@@ -204,7 +188,7 @@ __host__ __device__ unsigned int findNnKd(const KdNode* nodes,
 		return bestPointIdx;
 
 	// First check nearer child. If query point is to close to border, also check other child (backtracking)
-	if (query[currentNode.SplitDim] < currentPoint[currentNode.SplitDim]
+	if (cudaQuery[currentNode.SplitDim] < currentPoint[currentNode.SplitDim]
 			&& currentNode.RightChildIdx != currentNodeIdx + 1)
 	{
 		bestPointIdx = findNnKd(nodes, points, currentNodeIdx + 1, bestPointIdx,
@@ -212,9 +196,9 @@ __host__ __device__ unsigned int findNnKd(const KdNode* nodes,
 		const Point &newBestPoint = points[bestPointIdx];
 
 		// Backtracking
-		if ((query - newBestPoint).length()
+		if ((cudaQuery - newBestPoint).length()
 				>= fabsf(
-						query[currentNode.SplitDim]
+						cudaQuery[currentNode.SplitDim]
 								- currentPoint[currentNode.SplitDim]))
 			bestPointIdx = findNnKd(nodes, points, currentNode.RightChildIdx,
 					bestPointIdx, query);
@@ -227,9 +211,9 @@ __host__ __device__ unsigned int findNnKd(const KdNode* nodes,
 		const Point &newBestPoint = points[bestPointIdx];
 
 		//Backtracking
-		if ((query - newBestPoint).length()
+		if ((cudaQuery - newBestPoint).length()
 				>= fabsf(
-						query[currentNode.SplitDim]
+						cudaQuery[currentNode.SplitDim]
 								- currentPoint[currentNode.SplitDim])
 				&& currentNode.RightChildIdx != currentNodeIdx + 1)
 			bestPointIdx = findNnKd(nodes, points, currentNodeIdx + 1,
@@ -239,7 +223,7 @@ __host__ __device__ unsigned int findNnKd(const KdNode* nodes,
 	return bestPointIdx;
 }
 
-unsigned int findNnKd(const vector<KdNode> &nodes, const vector<Point> &points,
+unsigned int cpu_findNnKd(const vector<KdNode> &nodes, const vector<Point> &points,
 		const Point &query)
 {
 	return findNnKd(&nodes[0], &points[0], 0, nodes[0].PointIdx, query);
@@ -256,54 +240,9 @@ __global__ void findNnKd(int* nns, const Point* points, const int numPoints,
 	nns[idx] = findNnKd(nodes, points, 0, nodes[0].PointIdx, queries[idx]);
 }
 
-int main(int argc, char **argv)
-{
-	// Increase the cuda stack size for more recursion levels.
-	cudaDeviceSetLimit(cudaLimitStackSize, 16 * 1024);
-
-	// Create random point data
-	vector<Point> points(NUM_POINTS);
-	for (unsigned int p = 0; p < NUM_POINTS; p++)
-	{
-		points[p].x = randF(-1.0f, 1.0f);
-		points[p].y = randF(-1.0f, 1.0f);
-	}
-	vector<KdNode> nodes = makeKdTree(points);
-
-	vector<Point> queries(NUM_QUERIES);
-	for (unsigned int q = 0; q < NUM_QUERIES; q++)
-	{
-		queries[q].x = randF(-1.0f, 1.0f);
-		queries[q].y = randF(-1.0f, 1.0f);
-	}
-
-	// Init timing variables
-	__int64_t bfTimeCpu = 0;
-	__int64_t kdTimeCpu = 0;
+void cuda_findNnKd(const std::vector<KdNode> &nodes, const std::vector<Point> &points, const std::vector<Point> &queries, std::vector<int>& kdResultsGpu) {
 	__int64_t kdTimeGpu = 0;
 	__int64_t start;
-
-	// BF CPU
-#ifdef BF
-	vector<int> bfResults(queries.size());
-	start = continuousTimeNs();
-	for (unsigned int q = 0; q < queries.size(); q++)
-		bfResults[q] = findNnBruteForce(points, queries[q]);
-	bfTimeCpu += continuousTimeNs() - start;
-#endif
-
-	// KD CPU
-#ifdef KD
-	vector<int> kdResults(queries.size());
-	start = continuousTimeNs();
-	for (unsigned int q = 0; q < queries.size(); q++)
-		kdResults[q] = findNnKd(nodes, points, queries[q]);
-	kdTimeCpu += continuousTimeNs() - start;
-#endif
-
-	// GPU
-#ifdef KD_GPU
-	vector<int> kdResultsGpu(queries.size());
 	Point* gPoints;
 	KdNode* gNodes;
 	Point* gQueries;
@@ -333,39 +272,7 @@ int main(int argc, char **argv)
 	cudaFree(gNodes);
 	cudaFree(gQueries);
 	cudaFree(gNns);
-#endif
 
-	// Verification
-	for (unsigned int q = 0; q < queries.size(); q++)
-	{
-#ifdef VERBOSE
-		cout << queries[q] << "   BF: " << bfResults[q] << " "
-				<< (queries[q] - points[bfResults[q]]).length() << "   KD: "
-				<< kdResults[q] << " "
-				<< (queries[q] - points[kdResults[q]]).length() << endl;
-#endif
-#ifdef BF
-#ifdef KD
-		if (bfResults[q] != kdResults[q])
-			cout << "CPU KD Tree error!" << endl;
-#endif
-#ifdef KD_GPU
-		if (bfResults[q] != kdResultsGpu[q])
-			cout << "GPU KD Tree error!" << endl;
-#endif
-#endif
-#ifdef KD
-#ifdef KD_GPU
-		if (kdResults[q] != kdResultsGpu[q])
-			cout << "CPU/GPU KD Tree results differ!" << endl;
-#endif
-#endif
-	}
-
-	// Timing
-	cout << "BF time: " << bfTimeCpu << endl;
-	cout << "KD time: " << kdTimeCpu << endl;
-	cout << "GPU KD time: " << kdTimeGpu << endl;
-
-	return 0;
+	std::cout << "GPU KD time: " << kdTimeGpu << std::endl;
 }
+

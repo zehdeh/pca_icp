@@ -1,35 +1,101 @@
 #include "kdtreetest.h"
 
+#include "Tools.h"
+
 #include "util.h"
 #include "kdtree.h"
 
+/// Numbers for testing
+//#define NUM_POINTS 20
+//#define NUM_QUERIES 10
+
+/// Numbers for benchmarking
+#define NUM_POINTS 1000
+#define NUM_QUERIES 100000
+
+#define BF // Don't use for benchmarking!
+#define KD
+#define KD_GPU
+
 int kdTreeTest() {
-	const int numElements = 8;
-	const int numDimensions = 3;
+	// Increase the cuda stack size for more recursion levels.
+	cuda_increaseStackSize();
 
-	float pointList[numElements*numDimensions] = {
-	9,1,0,
-	7,2,0,
-	6,3,0,
-	5,4,0,
-	4,5,0,
-	3,6,0,
-	2,7,0,
-	1,8,0};
+	// Create random point data
+	std::vector<Point> points(NUM_POINTS);
+	for (unsigned int p = 0; p < NUM_POINTS; p++)
+	{
+		points[p].x = randF(-1.0f, 1.0f);
+		points[p].y = randF(-1.0f, 1.0f);
+	}
+	std::vector<KdNode> nodes = makeKdTree(points);
 
-	float* pointListPointers[numElements*numDimensions];
-	for(unsigned int i = 0; i < numElements*numDimensions; i++) {
-		pointListPointers[i] = &pointList[i];
+	std::vector<Point> queries(NUM_QUERIES);
+	for (unsigned int q = 0; q < NUM_QUERIES; q++)
+	{
+		queries[q].x = randF(-1.0f, 1.0f);
+		queries[q].y = randF(-1.0f, 1.0f);
 	}
 
+	// Init timing variables
+	__int64_t bfTimeCpu = 0;
+	__int64_t kdTimeCpu = 0;
+	__int64_t start;
 
-	//buildKdTree(numElements, numDimensions, pointListPointers, 0);
-	//quicksort(numElements, numDimensions, pointList, 0);
+	// BF CPU
+#ifdef BF
+	std::vector<int> bfResults(queries.size());
+	start = continuousTimeNs();
+	for (unsigned int q = 0; q < queries.size(); q++)
+		bfResults[q] = findNnBruteForce(points, queries[q]);
+	bfTimeCpu += continuousTimeNs() - start;
+#endif
 
-	//printMatrix(numElements, numDimensions, pointList);
+	// KD CPU
+#ifdef KD
+	std::vector<int> kdResults(queries.size());
+	start = continuousTimeNs();
+	for (unsigned int q = 0; q < queries.size(); q++)
+		kdResults[q] = cpu_findNnKd(nodes, points, queries[q]);
+	kdTimeCpu += continuousTimeNs() - start;
+#endif
 
+	// GPU
+#ifdef KD_GPU
+	std::vector<int> kdResultsGpu(queries.size());
+	cuda_findNnKd(nodes, points, queries, kdResultsGpu);
+#endif
 
-	//quicksort(numElements, numDimensions, pointList, 1);
-	//printMatrix(numElements, numDimensions, pointList);
+	// Verification
+	for (unsigned int q = 0; q < queries.size(); q++)
+	{
+#ifdef VERBOSE
+		std::cout << queries[q] << "   BF: " << bfResults[q] << " "
+				<< (queries[q] - points[bfResults[q]]).length() << "   KD: "
+				<< kdResults[q] << " "
+				<< (queries[q] - points[kdResults[q]]).length() << std::endl;
+#endif
+#ifdef BF
+#ifdef KD
+		if (bfResults[q] != kdResults[q])
+			std::cout << "CPU KD Tree error!" << std::endl;
+#endif
+#ifdef KD_GPU
+		if (bfResults[q] != kdResultsGpu[q])
+			std::cout << "GPU KD Tree error!" << std::endl;
+#endif
+#endif
+#ifdef KD
+#ifdef KD_GPU
+		if (kdResults[q] != kdResultsGpu[q])
+			std::cout << "CPU/GPU KD Tree results differ!" << std::endl;
+#endif
+#endif
+	}
+
+	// Timing
+	std::cout << "BF time: " << bfTimeCpu << std::endl;
+	std::cout << "KD time: " << kdTimeCpu << std::endl;
+
 	return 0;
 }
