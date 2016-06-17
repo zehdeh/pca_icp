@@ -27,6 +27,7 @@ int kdTreeTest() {
 	{
 		points[p].x = randF(-1.0f, 1.0f);
 		points[p].y = randF(-1.0f, 1.0f);
+		points[p].z = randF(-1.0f, 1.0f);
 	}
 	std::vector<KdNode> nodes = makeKdTree(points);
 
@@ -35,6 +36,7 @@ int kdTreeTest() {
 	{
 		queries[q].x = randF(-1.0f, 1.0f);
 		queries[q].y = randF(-1.0f, 1.0f);
+		queries[q].z = randF(-1.0f, 1.0f);
 	}
 
 	// Init timing variables

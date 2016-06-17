@@ -7,13 +7,15 @@
 struct Point {
 	float x;
 	float y;
+	float z;
 };
 std::ostream& operator<<(std::ostream& os, const Point& point);
 struct KdNode
 {
 	const static char X = 0;
 	const static char Y = 1;
-	const static char None = 2;
+	const static char Z = 2;
+	const static char None = 3;
 
 	int PointIdx;
 	int RightChildIdx;

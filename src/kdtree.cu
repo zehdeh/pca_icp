@@ -21,6 +21,7 @@ struct CudaPoint : Point {
 	__host__ __device__ CudaPoint(const Point& p) {
 		x = p.x;
 		y = p.y;
+		z = p.z;
 	}
 	__host__ __device__ float operator[](const unsigned int index) const
 	{
@@ -37,13 +38,14 @@ struct CudaPoint : Point {
 		Point result;
 		result.x = x - other.x;
 		result.y = y - other.y;
+		result.z = z - other.z;
 
 		return result;
 	}
 
 	__host__ __device__ float length() const
 	{
-		return sqrtf(x * x + y * y);
+		return sqrtf(x * x + y * y + z * z);
 	}
 };
 
@@ -139,7 +141,8 @@ void makeKdTree(vector<KdNode> &nodes, const vector<Point> &points,
 	dumpPart(nodes, points, fromNode, toNode, splitDim);
 
 	// Recursively process left and right part
-	char newSplitDim = (splitDim == KdNode::X) ? KdNode::Y : KdNode::X;
+	//char newSplitDim = (splitDim == KdNode::X) ? KdNode::Y : KdNode::X;
+	char newSplitDim = (splitDim + 1) % 3;
 	makeKdTree(nodes, points, fromNode + 1, splitNode + 1, newSplitDim);
 	makeKdTree(nodes, points, splitNode + 1, toNode, newSplitDim);
 }
