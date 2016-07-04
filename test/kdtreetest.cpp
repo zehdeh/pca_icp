@@ -38,6 +38,7 @@ int kdTreeTest() {
 		queries[q].y = randF(-1.0f, 1.0f);
 		queries[q].z = randF(-1.0f, 1.0f);
 	}
+	std::vector<KdNode> query_nodes = makeKdTree(queries);
 
 	// Init timing variables
 	__int64_t bfTimeCpu = 0;

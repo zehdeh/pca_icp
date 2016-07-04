@@ -173,6 +173,37 @@ unsigned int findNnBruteForce(const vector<Point> &points, const Point& query)
 	return bestIdx;
 }
 
+
+void dualTraversalNn(const KdNode* nodes, const KdNode* queryNodes,
+		const Point* points, const Point* queries,
+		const unsigned int currentNodeIdx, const unsigned int currentQueryNodeIdx,
+		unsigned int * Nns) {
+	const KdNode& currentQueryNode = queryNodes[currentQueryNodeIdx];
+	const KdNode& currentNode = nodes[currentNodeIdx];
+
+	const CudaPoint& currentQueryPoint = (const CudaPoint)queries[currentQueryNode.PointIdx];
+	const CudaPoint& currentPoint = (const CudaPoint)points[currentNode.PointIdx];
+	const CudaPoint& bestCandidate = (const CudaPoint)points[Nns[currentQueryNodeIdx]];
+
+	if((currentPoint - currentQueryPoint).length() < (bestCandidate - currentQueryPoint).length()) {
+		Nns[currentQueryNodeIdx] = currentNode.PointIdx;
+	}
+
+	/*
+	for(int i = currentQueryNodeIdx; i < queryNodes.size(); i++) {
+		unsigned int bestPointIdx = nodes[currentNodesIdx].PointIdx;
+		for(int j = currentNodeIdx; j < nodes.size(); j++) {
+			const CudaPoint& currentPoint = points[nodes[j].PointIdx];
+			const CudaPoint& currentQueryPoint = queryPoints[queryNodes[i].PointIdx];
+
+			if((currentPoint - currentQueryPoint) < (points[bestPointIdx] - currentQueryPoint)) {
+				bestPointIdx = i;
+			}
+		}
+	}
+	*/
+}
+
 __host__ __device__ unsigned int findNnKd(const KdNode* nodes,
 		const Point* points, const unsigned int currentNodeIdx,
 		unsigned int bestPointIdx, const Point &query)
