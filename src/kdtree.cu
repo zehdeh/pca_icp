@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <iostream>
 #include <math.h>
+#include <stack>
 
 using namespace std;
 
@@ -177,7 +178,7 @@ unsigned int findNnBruteForce(const vector<Point> &points, const Point& query)
 void dualTraversalNn(const KdNode* nodes, const KdNode* queryNodes,
 		const Point* points, const Point* queries,
 		const unsigned int currentNodeIdx, const unsigned int currentQueryNodeIdx,
-		unsigned int * Nns) {
+		unsigned int * Nns, std::stack< std::tuple<KdNode*,KdNode*> > workItems) {
 	const KdNode& currentQueryNode = queryNodes[currentQueryNodeIdx];
 	const KdNode& currentNode = nodes[currentNodeIdx];
 
@@ -187,6 +188,10 @@ void dualTraversalNn(const KdNode* nodes, const KdNode* queryNodes,
 
 	if((currentPoint - currentQueryPoint).length() < (bestCandidate - currentQueryPoint).length()) {
 		Nns[currentQueryNodeIdx] = currentNode.PointIdx;
+	}
+
+	if(currentQueryNode.SplitDim != KdNode::None) {
+		
 	}
 
 	/*
