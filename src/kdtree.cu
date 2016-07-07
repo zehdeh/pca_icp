@@ -56,6 +56,8 @@ std::ostream& operator<<(std::ostream& os, const Point& point)
 	return os;
 }
 
+typedef std::pair<const unsigned int, const unsigned int> workitem;
+
 struct NodeComparator {
 	char SplitDim;
 	const vector<Point> &Points;
@@ -187,41 +189,6 @@ unsigned int findNnBruteForce(const vector<Point> &points, const Point& query)
 	return bestIdx;
 }
 
-
-void dualTraversalNn(const KdNode* nodes, const KdNode* queryNodes,
-		const Point* points, const Point* queries,
-		const unsigned int currentNodeIdx, const unsigned int currentQueryNodeIdx,
-		unsigned int * Nns, std::stack< std::tuple<KdNode*,KdNode*> > workItems) {
-	const KdNode& currentQueryNode = queryNodes[currentQueryNodeIdx];
-	const KdNode& currentNode = nodes[currentNodeIdx];
-
-	const CudaPoint& currentQueryPoint = (const CudaPoint)queries[currentQueryNode.PointIdx];
-	const CudaPoint& currentPoint = (const CudaPoint)points[currentNode.PointIdx];
-	const CudaPoint& bestCandidate = (const CudaPoint)points[Nns[currentQueryNodeIdx]];
-
-	if((currentPoint - currentQueryPoint).length() < (bestCandidate - currentQueryPoint).length()) {
-		Nns[currentQueryNodeIdx] = currentNode.PointIdx;
-	}
-
-	if(currentQueryNode.SplitDim != KdNode::None) {
-		
-	}
-
-	/*
-	for(int i = currentQueryNodeIdx; i < queryNodes.size(); i++) {
-		unsigned int bestPointIdx = nodes[currentNodesIdx].PointIdx;
-		for(int j = currentNodeIdx; j < nodes.size(); j++) {
-			const CudaPoint& currentPoint = points[nodes[j].PointIdx];
-			const CudaPoint& currentQueryPoint = queryPoints[queryNodes[i].PointIdx];
-
-			if((currentPoint - currentQueryPoint) < (points[bestPointIdx] - currentQueryPoint)) {
-				bestPointIdx = i;
-			}
-		}
-	}
-	*/
-}
-
 __host__ __device__ unsigned int findNnKd(const KdNode* nodes,
 		const Point* points, const unsigned int currentNodeIdx,
 		unsigned int bestPointIdx, const Point &query)
@@ -331,12 +298,12 @@ void cuda_findNnKd(const std::vector<KdNode> &nodes, const std::vector<Point> &p
 unsigned int makeKdLeafTree(const std::vector<Point>& points, std::vector<unsigned int> pointIndices, std::vector<KdNode2>& nodes, const char splitDim) {
 	KdNode2 currentNode;
 	if(pointIndices.size() == 1) {
-		currentNode.leftChild = pointIndices[0];
+		currentNode.pointIdx = pointIndices[0];
 		currentNode.isLeaf = true;
 		for(unsigned int i = 0; i < 3; i++) {
-			currentNode.boundaries[i].first = currentNode.boundaries[i].second = ((CudaPoint)points[currentNode.leftChild])[i];
+			currentNode.boundaries[i].first = currentNode.boundaries[i].second = ((CudaPoint)points[currentNode.pointIdx])[i];
 		}
-	} else if(pointIndices.size() == 2) {
+	/*} else if(pointIndices.size() == 2) {
 		currentNode.leftChild = (((CudaPoint)points[pointIndices[0]])[splitDim]<((CudaPoint)points[pointIndices[1]])[splitDim])?pointIndices[0]:pointIndices[1];
 		currentNode.rightChild = (((CudaPoint)points[pointIndices[0]])[splitDim]>((CudaPoint)points[pointIndices[1]])[splitDim])?pointIndices[0]:pointIndices[1];
 		
@@ -345,7 +312,7 @@ unsigned int makeKdLeafTree(const std::vector<Point>& points, std::vector<unsign
 			currentNode.boundaries[i].second = std::max(((CudaPoint)points[pointIndices[0]])[i],((CudaPoint)points[pointIndices[1]])[i]);
 		}
 
-		currentNode.isLeaf = true;
+		currentNode.isLeaf = true;*/
 	} else {
 		sort(pointIndices.begin(), pointIndices.end(), PointIndexComparator(splitDim, points, pointIndices));
 
@@ -373,40 +340,75 @@ std::vector<KdNode2> makeKdLeafTree(const std::vector<Point>& points) {
 	for(unsigned int i = 0; i < points.size(); i++) {
 		pointIndices[i] = i;
 	}
-	std::cout << pointIndices.size() << std::endl;
 	const unsigned int rootIdx = makeKdLeafTree(points, pointIndices, nodes, KdNode::X);
-	nodes[rootIdx].print(nodes, 0);
-
+	//nodes[rootIdx].print(nodes, points, 0);
 
 	return nodes;
 }
 
-void dualTreeTraversal(const std::vector<KdNode2>& nodes, const std::vector<KdNode2>& queryNodes,
+void dualTreeStep(const std::vector<KdNode2>& nodes, const std::vector<KdNode2>& queryNodes,
 	const std::vector<Point>& points, const std::vector<Point>& queries,
-	const unsigned int currentNodeIdx, const unsigned int currentQueryNodeIdx, unsigned int* Nns, float* distances, std::stack< std::pair<unsigned int, unsigned int> >& stack) {
+	const unsigned int currentNodeIdx, const unsigned int currentQueryNodeIdx,
+	unsigned int* Nns, float* distances,
+	std::stack< workitem >& stack) {
 
 	const KdNode2& currentQueryNode = queryNodes[currentQueryNodeIdx];
+	const KdNode2& currentNode = nodes[currentNodeIdx];
 
+	if(currentQueryNode.isLeaf && currentNode.isLeaf) {
+		const Point& bestCandidate = points[Nns[currentQueryNode.pointIdx]];
+		const Point& currentQuery = queries[currentQueryNode.pointIdx];
+
+		float distance = ((CudaPoint)points[currentNode.pointIdx] - (CudaPoint)currentQuery).length();
+		if(distance < ((CudaPoint)bestCandidate - (CudaPoint)currentQuery).length()) {
+			Nns[currentQueryNode.pointIdx] = currentNode.leftChild;
+			distances[currentQueryNode.pointIdx] = distance;
+		}
+	} else if(currentQueryNode.isLeaf && !currentNode.isLeaf) {
+		stack.push(workitem(currentQueryNodeIdx,currentNode.leftChild));
+		stack.push(workitem(currentQueryNodeIdx,currentNode.rightChild));
+	} else if(!currentQueryNode.isLeaf && currentNode.isLeaf) {
+		stack.push(workitem(currentQueryNode.leftChild,currentNodeIdx));
+		stack.push(workitem(currentQueryNode.rightChild,currentNodeIdx));
+	} else {
+		stack.push(workitem(currentQueryNode.leftChild,currentNode.leftChild));
+		stack.push(workitem(currentQueryNode.leftChild,currentNode.rightChild));
+		stack.push(workitem(currentQueryNode.rightChild,currentNode.leftChild));
+		stack.push(workitem(currentQueryNode.rightChild,currentNode.rightChild));
+	}
 }
 
-float nodeDistance(KdNode2& query, KdNode2& node) {
-	float distances[3];
-	for(unsigned int i = 0; i < 3; i++) {
-		bool QueryBeforePoint = query.boundaries[i].first < node.boundaries[i].first && query.boundaries[i].second < node.boundaries[i].first;
-		bool QueryAfterPoint = query.boundaries[i].first > node.boundaries[i].first && query.boundaries[i].second > node.boundaries[i].first;
+void findNnDual(const std::vector<KdNode2>& nodes, const std::vector<KdNode2>& queryNodes,
+		const std::vector<Point>& points, const std::vector<Point>& queries, std::vector<int> results) {
+	unsigned int Nns[queries.size()];
+	float distances[queries.size()];
+	std::stack< workitem > stack;
+	memset(Nns, 0, sizeof(Nns));
 
-		if(QueryBeforePoint || QueryAfterPoint) {
-			if(QueryBeforePoint) {
-				distances[i] = node.boundaries[i].first - query.boundaries[i].second;
-				distances[i] *= distances[i];
-			} else {
-				distances[i] = query.boundaries[i].first - node.boundaries[i].second;
-				distances[i] *= distances[i];
-			}
+	stack.push(workitem(nodes.size() - 1, queryNodes.size() - 1));
+	while(!stack.empty()) {
+		workitem work = stack.top();
+		stack.pop();
+		dualTreeStep(nodes, queryNodes, points, queries, work.first, work.second, Nns, distances, stack);
+	}
+	results.insert(results.begin(), &Nns[0], &Nns[queries.size() - 1]);
+}
+
+float minNodeDistance(KdNode2& query, KdNode2& node) {
+	float distance;
+	for(int i = 0; i < 3; i++) {
+		float qMin = std::min(query.boundaries[i].first, query.boundaries[i].second);
+		float qMax = std::max(query.boundaries[i].first, query.boundaries[i].second);
+		float nMin = std::min(node.boundaries[i].first, node.boundaries[i].second);
+		float nMax = std::max(node.boundaries[i].first, node.boundaries[i].second);
+		if(qMax < nMin) {
+			float d = qMax - nMin;
+			distance += d*d;
 		} else {
-			return 0;
+			float d = qMin - nMax;
+			distance += d*d;
 		}
 	}
-	return sqrtf(distances[0] + distances[1] + distances[2]);
+	return sqrtf(distance);
 }
 

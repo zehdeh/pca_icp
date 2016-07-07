@@ -4,6 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <utility>
+#include <limits>
 
 struct Point {
 	float x;
@@ -24,24 +25,26 @@ struct KdNode
 };
 
 struct KdNode2 {
-	KdNode2() : isLeaf(false) {}
+	KdNode2() : isLeaf(false), minDistance(99999) {}
 	unsigned int rightChild;
 	unsigned int leftChild;
+	unsigned int pointIdx;
+	float minDistance;
 
 	char SplitDim;
 	bool isLeaf;
 	std::pair<float, float> boundaries[3];
-	void print(const std::vector<KdNode2>& nodes, unsigned int depth) const {
+	void print(const std::vector<KdNode2>& nodes, const std::vector<Point>& points, unsigned int depth) const {
 		if(isLeaf) {
-			std::cout << "leaf (" << depth << ")" << std::endl;
+			std::cout << "leaf (" << depth << ") " << points[pointIdx] << std::endl;
 		} else {
 			std::cout << "node (" << depth << ",x:{" << boundaries[0].first << "," << boundaries[0].second 
 			<< "},y:{" << boundaries[1].first << "," << boundaries[1].second 
 			<< "},z:{" << boundaries[2].first << "," << boundaries[2].second << "})" << std::endl;
 			for(unsigned int i = 0; i < depth; i++) std::cout << "   ";
-			nodes[leftChild].print(nodes, depth + 1);
+			nodes[leftChild].print(nodes, points, depth + 1);
 			for(unsigned int i = 0; i < depth; i++) std::cout << "   ";
-			nodes[rightChild].print(nodes, depth + 1);
+			nodes[rightChild].print(nodes, points, depth + 1);
 		}
 	}
 };
@@ -54,5 +57,6 @@ unsigned int findNnBruteForce(const std::vector<Point> &points, const Point& que
 unsigned int cpu_findNnKd(const std::vector<KdNode> &nodes, const std::vector<Point> &points, const Point &query);
 void cuda_findNnKd(const std::vector<KdNode> &nodes, const std::vector<Point> &points, const std::vector<Point> &queries, std::vector<int>& kdResultsGpu);
 std::vector<KdNode2> makeKdLeafTree(const std::vector<Point>& points);
+void findNnDual(const std::vector<KdNode2>& nodes, const std::vector<KdNode2>& queryNodes,const std::vector<Point>& points, const std::vector<Point>& queries, std::vector<int> results);
 
 #endif

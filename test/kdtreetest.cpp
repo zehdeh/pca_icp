@@ -29,7 +29,7 @@ int kdTreeTest() {
 		points[p].y = randF(-1.0f, 1.0f);
 		points[p].z = randF(-1.0f, 1.0f);
 	}
-	std::vector<KdNode2> spaceNodes = makeKdLeafTree(points);
+	std::vector<KdNode2> dualNodes = makeKdLeafTree(points);
 	std::vector<KdNode> nodes = makeKdTree(points);
 
 	std::vector<Point> queries(NUM_QUERIES);
@@ -40,11 +40,12 @@ int kdTreeTest() {
 		queries[q].z = randF(-1.0f, 1.0f);
 	}
 	std::vector<KdNode> query_nodes = makeKdTree(queries);
-	std::vector<KdNode2> query_spaceNodes = makeKdLeafTree(points);
+	std::vector<KdNode2> query_dualNodes = makeKdLeafTree(points);
 
 	// Init timing variables
 	__int64_t bfTimeCpu = 0;
 	__int64_t kdTimeCpu = 0;
+	__int64_t dualTimeCpu = 0;
 	__int64_t start;
 
 	// BF CPU
@@ -71,6 +72,12 @@ int kdTreeTest() {
 	cuda_findNnKd(nodes, points, queries, kdResultsGpu);
 #endif
 
+	// Dual CPU
+	std::vector<int> dualResults(queries.size());
+	start = continuousTimeNs();
+	findNnDual(dualNodes, query_dualNodes, points, queries, dualResults);
+	dualTimeCpu += continuousTimeNs() - start;
+
 	// Verification
 	for (unsigned int q = 0; q < queries.size(); q++)
 	{
@@ -96,11 +103,14 @@ int kdTreeTest() {
 			std::cout << "CPU/GPU KD Tree results differ!" << std::endl;
 #endif
 #endif
+		if(bfResults[q] != dualResults[q])
+			std::cout << "CPU Dual Tree error!" << std::endl;
 	}
 
 	// Timing
 	std::cout << "BF time: " << bfTimeCpu << std::endl;
 	std::cout << "KD time: " << kdTimeCpu << std::endl;
+	std::cout << "Dual time: " << dualTimeCpu << std::endl;
 
 	return 0;
 }
