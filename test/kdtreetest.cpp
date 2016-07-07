@@ -30,7 +30,6 @@ int kdTreeTest() {
 		points[p].z = randF(-1.0f, 1.0f);
 	}
 	std::vector<KdNode2> spaceNodes = makeKdLeafTree(points);
-	return 0;
 	std::vector<KdNode> nodes = makeKdTree(points);
 
 	std::vector<Point> queries(NUM_QUERIES);
@@ -41,6 +40,7 @@ int kdTreeTest() {
 		queries[q].z = randF(-1.0f, 1.0f);
 	}
 	std::vector<KdNode> query_nodes = makeKdTree(queries);
+	std::vector<KdNode2> query_spaceNodes = makeKdLeafTree(points);
 
 	// Init timing variables
 	__int64_t bfTimeCpu = 0;

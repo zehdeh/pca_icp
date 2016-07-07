@@ -380,3 +380,33 @@ std::vector<KdNode2> makeKdLeafTree(const std::vector<Point>& points) {
 
 	return nodes;
 }
+
+void dualTreeTraversal(const std::vector<KdNode2>& nodes, const std::vector<KdNode2>& queryNodes,
+	const std::vector<Point>& points, const std::vector<Point>& queries,
+	const unsigned int currentNodeIdx, const unsigned int currentQueryNodeIdx, unsigned int* Nns, float* distances, std::stack< std::pair<unsigned int, unsigned int> >& stack) {
+
+	const KdNode2& currentQueryNode = queryNodes[currentQueryNodeIdx];
+
+}
+
+float nodeDistance(KdNode2& query, KdNode2& node) {
+	float distances[3];
+	for(unsigned int i = 0; i < 3; i++) {
+		bool QueryBeforePoint = query.boundaries[i].first < node.boundaries[i].first && query.boundaries[i].second < node.boundaries[i].first;
+		bool QueryAfterPoint = query.boundaries[i].first > node.boundaries[i].first && query.boundaries[i].second > node.boundaries[i].first;
+
+		if(QueryBeforePoint || QueryAfterPoint) {
+			if(QueryBeforePoint) {
+				distances[i] = node.boundaries[i].first - query.boundaries[i].second;
+				distances[i] *= distances[i];
+			} else {
+				distances[i] = query.boundaries[i].first - node.boundaries[i].second;
+				distances[i] *= distances[i];
+			}
+		} else {
+			return 0;
+		}
+	}
+	return sqrtf(distances[0] + distances[1] + distances[2]);
+}
+
