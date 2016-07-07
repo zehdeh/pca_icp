@@ -61,13 +61,26 @@ struct NodeComparator {
 	const vector<Point> &Points;
 
 	NodeComparator(const char splitDim, const vector<Point> &points) :
-			SplitDim(splitDim), Points(points)
-	{
+		SplitDim(splitDim), Points(points) {
 	}
 
-	bool operator()(const KdNode &i, const KdNode &j)
-	{
+	bool operator()(const KdNode &i, const KdNode &j) {
 		return (((const CudaPoint)Points[i.PointIdx])[SplitDim] < ((const CudaPoint)Points[j.PointIdx])[SplitDim]);
+	}
+};
+
+struct PointIndexComparator {
+	char splitDim;
+	const std::vector<Point> &points;
+	const std::vector<unsigned int> &pointIndices;
+
+	PointIndexComparator(const char splitDim, const vector<Point> &points, const vector<unsigned int> &pointIndices) :
+		splitDim(splitDim), points(points), pointIndices(pointIndices) {
+		}
+
+	bool operator()(const unsigned int &i, const unsigned int &j)
+	{
+		return (((const CudaPoint)points[i])[splitDim] < ((const CudaPoint)points[j])[splitDim]);
 	}
 };
 
@@ -315,3 +328,55 @@ void cuda_findNnKd(const std::vector<KdNode> &nodes, const std::vector<Point> &p
 	std::cout << "GPU KD time: " << kdTimeGpu << std::endl;
 }
 
+unsigned int makeKdLeafTree(const std::vector<Point>& points, std::vector<unsigned int> pointIndices, std::vector<KdNode2>& nodes, const char splitDim) {
+	KdNode2 currentNode;
+	if(pointIndices.size() == 1) {
+		currentNode.leftChild = pointIndices[0];
+		currentNode.isLeaf = true;
+		for(unsigned int i = 0; i < 3; i++) {
+			currentNode.boundaries[i].first = currentNode.boundaries[i].second = ((CudaPoint)points[currentNode.leftChild])[i];
+		}
+	} else if(pointIndices.size() == 2) {
+		currentNode.leftChild = (((CudaPoint)points[pointIndices[0]])[splitDim]<((CudaPoint)points[pointIndices[1]])[splitDim])?pointIndices[0]:pointIndices[1];
+		currentNode.rightChild = (((CudaPoint)points[pointIndices[0]])[splitDim]>((CudaPoint)points[pointIndices[1]])[splitDim])?pointIndices[0]:pointIndices[1];
+		
+		for(unsigned int i = 0; i < 3; i++) {
+			currentNode.boundaries[i].first = std::min(((CudaPoint)points[pointIndices[0]])[i],((CudaPoint)points[pointIndices[1]])[i]);
+			currentNode.boundaries[i].second = std::max(((CudaPoint)points[pointIndices[0]])[i],((CudaPoint)points[pointIndices[1]])[i]);
+		}
+
+		currentNode.isLeaf = true;
+	} else {
+		sort(pointIndices.begin(), pointIndices.end(), PointIndexComparator(splitDim, points, pointIndices));
+
+		unsigned int splitIndex = pointIndices.size() / 2;
+		char newSplitDim = (splitDim + 1) % 3;
+		std::vector<unsigned int> pointIndicesLeft(pointIndices.begin(), pointIndices.begin() + splitIndex);
+		currentNode.leftChild = makeKdLeafTree(points, pointIndicesLeft, nodes, newSplitDim);
+
+		std::vector<unsigned int> pointIndicesRight(pointIndices.begin() + splitIndex, pointIndices.end());
+		currentNode.rightChild = makeKdLeafTree(points, pointIndicesRight, nodes, newSplitDim);
+
+		for(unsigned int i = 0; i < 3; i++) {
+			currentNode.boundaries[i].first = std::min(nodes[currentNode.leftChild].boundaries[i].first,nodes[currentNode.rightChild].boundaries[i].first);
+			currentNode.boundaries[i].second = std::max(nodes[currentNode.leftChild].boundaries[i].second,nodes[currentNode.rightChild].boundaries[i].second);
+		}
+	}
+	nodes.push_back(currentNode);
+
+	return (nodes.size() - 1);
+}
+
+std::vector<KdNode2> makeKdLeafTree(const std::vector<Point>& points) {
+	std::vector<unsigned int> pointIndices(points.size());
+	std::vector<KdNode2> nodes;
+	for(unsigned int i = 0; i < points.size(); i++) {
+		pointIndices[i] = i;
+	}
+	std::cout << pointIndices.size() << std::endl;
+	const unsigned int rootIdx = makeKdLeafTree(points, pointIndices, nodes, KdNode::X);
+	nodes[rootIdx].print(nodes, 0);
+
+
+	return nodes;
+}

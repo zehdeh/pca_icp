@@ -11,7 +11,7 @@
 
 /// Numbers for benchmarking
 #define NUM_POINTS 1000
-#define NUM_QUERIES 100000
+#define NUM_QUERIES 1000
 
 #define BF // Don't use for benchmarking!
 #define KD
@@ -29,6 +29,8 @@ int kdTreeTest() {
 		points[p].y = randF(-1.0f, 1.0f);
 		points[p].z = randF(-1.0f, 1.0f);
 	}
+	std::vector<KdNode2> spaceNodes = makeKdLeafTree(points);
+	return 0;
 	std::vector<KdNode> nodes = makeKdTree(points);
 
 	std::vector<Point> queries(NUM_QUERIES);
