@@ -57,6 +57,8 @@ unsigned int findNnBruteForce(const std::vector<Point> &points, const Point& que
 unsigned int cpu_findNnKd(const std::vector<KdNode> &nodes, const std::vector<Point> &points, const Point &query);
 void cuda_findNnKd(const std::vector<KdNode> &nodes, const std::vector<Point> &points, const std::vector<Point> &queries, std::vector<int>& kdResultsGpu);
 std::vector<KdNode2> makeKdLeafTree(const std::vector<Point>& points);
-void findNnDual(const std::vector<KdNode2>& nodes, const std::vector<KdNode2>& queryNodes,const std::vector<Point>& points, const std::vector<Point>& queries, std::vector<int> results);
+void findNnDual(const std::vector<KdNode2>& nodes, const std::vector<KdNode2>& queryNodes,
+	const std::vector<Point>& points, const std::vector<Point>& queries, 
+	std::vector<int>& results);
 
 #endif

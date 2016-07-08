@@ -78,6 +78,7 @@ int kdTreeTest() {
 	findNnDual(dualNodes, query_dualNodes, points, queries, dualResults);
 	dualTimeCpu += continuousTimeNs() - start;
 
+	unsigned int noErrors = 0;
 	// Verification
 	for (unsigned int q = 0; q < queries.size(); q++)
 	{
@@ -103,9 +104,13 @@ int kdTreeTest() {
 			std::cout << "CPU/GPU KD Tree results differ!" << std::endl;
 #endif
 #endif
-		if(bfResults[q] != dualResults[q])
+		if(bfResults[q] != dualResults[q]) {
 			std::cout << "CPU Dual Tree error!" << std::endl;
+			std::cout << q << " " << bfResults[q] << " " << dualResults[q] << std::endl;
+			noErrors++;
+		}
 	}
+	std::cout << "No Errors: " << noErrors << std::endl;
 
 	// Timing
 	std::cout << "BF time: " << bfTimeCpu << std::endl;
