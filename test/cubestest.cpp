@@ -93,7 +93,7 @@ int cubesTest() {
 	}
 
 	float testRotation[9] = {0.52,0,0.85,0,1,0,-0.85,0,0.52};
-	rotateMatrix(numElements, numDimensions, pointList2, testRotation);
+	rotateMatrix(numElements, pointList2, testRotation);
 
 	std::cout << "BEFORE" << std::endl;
 	std::cout << "First:" << std::endl;
@@ -103,14 +103,14 @@ int cubesTest() {
 	printMatrix(numElements, numDimensions, pointList2);
 
 	float distance1[3];
-	findOriginDistance(numElements, numDimensions, pointList1, distance1);
-	translate(numElements, numDimensions, pointList1, distance1);
+	findOriginDistance(numElements, pointList1, distance1);
+	translate(numElements, pointList1, distance1);
 	std::cout << "Centroids:" << std::endl;
 	std::cout << distance1[0] << " " << distance1[1] << " " << distance1[2] << std::endl;
 
 	float distance2[3];
-	findOriginDistance(numElements, numDimensions, pointList2, distance2);
-	translate(numElements, numDimensions, pointList2, distance2);
+	findOriginDistance(numElements, pointList2, distance2);
+	translate(numElements, pointList2, distance2);
 
 	std::cout << distance2[0] << " " << distance2[1] << " " << distance2[2] << std::endl;
 

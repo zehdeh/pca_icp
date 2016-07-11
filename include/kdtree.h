@@ -1,16 +1,14 @@
 #ifndef KDTREE_HEADER
 #define KDTREE_HEADER
 
+#include <types.h>
+
 #include <iostream>
 #include <vector>
 #include <utility>
 #include <limits>
+#include <algorithm>
 
-struct Point {
-	float x;
-	float y;
-	float z;
-};
 std::ostream& operator<<(std::ostream& os, const Point& point);
 struct KdNode
 {
@@ -34,17 +32,17 @@ struct KdNode2 {
 	char SplitDim;
 	bool isLeaf;
 	std::pair<float, float> boundaries[3];
-	void print(const std::vector<KdNode2>& nodes, const std::vector<Point>& points, unsigned int depth) const {
+	void print(const std::vector<KdNode2>& nodes, const std::vector<Point>& points, unsigned int depth, unsigned int ownIdx) const {
 		if(isLeaf) {
-			std::cout << "leaf (" << depth << ") " << points[pointIdx] << std::endl;
+			std::cout << "leaf (" << ownIdx << "," << pointIdx << ") " << points[pointIdx] << std::endl;
 		} else {
-			std::cout << "node (" << depth << ",x:{" << boundaries[0].first << "," << boundaries[0].second 
+			std::cout << "node (" << ownIdx << ",x:{" << boundaries[0].first << "," << boundaries[0].second 
 			<< "},y:{" << boundaries[1].first << "," << boundaries[1].second 
 			<< "},z:{" << boundaries[2].first << "," << boundaries[2].second << "})" << std::endl;
 			for(unsigned int i = 0; i < depth; i++) std::cout << "   ";
-			nodes[leftChild].print(nodes, points, depth + 1);
+			nodes[leftChild].print(nodes, points, depth + 1, leftChild);
 			for(unsigned int i = 0; i < depth; i++) std::cout << "   ";
-			nodes[rightChild].print(nodes, points, depth + 1);
+			nodes[rightChild].print(nodes, points, depth + 1, rightChild);
 		}
 	}
 };

@@ -3,20 +3,22 @@
 #include <iostream>
 #include <cstring>
 
-void rotateMatrix(const unsigned int numElements, const unsigned int numDimensions, float* const pointList, const float* const rotation) {
-	float temp[numElements * numDimensions];
-	memset(temp, 0, sizeof(float)*numDimensions*numElements);
+#define NUM_DIMENSIONS 3
+
+void rotateMatrix(const unsigned int numElements, float* const pointList, const float* const rotation) {
+	float temp[numElements * NUM_DIMENSIONS];
+	memset(temp, 0, sizeof(float)*NUM_DIMENSIONS*numElements);
 	for(unsigned int i = 0; i < numElements; i++) {
-		for(unsigned int j = 0; j < numDimensions; j++) {
-			for(unsigned int k = 0; k < numDimensions; k++) {
-				temp[i*numDimensions + j] += pointList[i*numDimensions + k]*rotation[j*numDimensions + k];
+		for(unsigned int j = 0; j < NUM_DIMENSIONS; j++) {
+			for(unsigned int k = 0; k < NUM_DIMENSIONS; k++) {
+				temp[i*NUM_DIMENSIONS + j] += pointList[i*NUM_DIMENSIONS + k]*rotation[j*NUM_DIMENSIONS + k];
 			}
 		}
 	}
 
 	for(unsigned int i = 0; i < numElements; i++) {
-		for(unsigned int j = 0; j < numDimensions; j++) {
-			pointList[i*numDimensions + j] = temp[i*numDimensions + j];
+		for(unsigned int j = 0; j < NUM_DIMENSIONS; j++) {
+			pointList[i*NUM_DIMENSIONS + j] = temp[i*NUM_DIMENSIONS + j];
 		}
 	}
 }
@@ -61,28 +63,28 @@ float matrixRMSE(const unsigned int m, const unsigned int n, const float* matrix
 
 }
 
-void findOriginDistance(const unsigned int numElements, const unsigned int numDimensions, const float* const pointList, float* const distance) {
-	memset(distance, 0, sizeof(float)*numDimensions);
+void findOriginDistance(const unsigned int numElements, const float* const pointList, float* const distance) {
+	memset(distance, 0, sizeof(float)*NUM_DIMENSIONS);
 	for(unsigned int i = 0; i < numElements; i++) {
-		for(unsigned int j = 0; j < numDimensions; j++) {
-			distance[j] += pointList[i*numDimensions + j] / numElements;
+		for(unsigned int j = 0; j < NUM_DIMENSIONS; j++) {
+			distance[j] += pointList[i*NUM_DIMENSIONS + j] / numElements;
 		}
 	}
 }
 
-void translate(const unsigned int numElements, const unsigned int numDimensions, float* const pointList, float* t) {
+void translate(const unsigned int numElements, float* const pointList, float* t) {
 	for(unsigned int i = 0; i < numElements; i++) {
-		for(unsigned int j = 0; j < numDimensions; j++) {
-			pointList[i*numDimensions + j] -= t[j];
+		for(unsigned int j = 0; j < NUM_DIMENSIONS; j++) {
+			pointList[i*NUM_DIMENSIONS + j] -= t[j];
 		}
 	}
 }
 
-void transpose(const unsigned int numElements, const unsigned int numDimensions, const float* const pointList, float* const pointListTransposed) {
-	for(unsigned int i = 0; i < numElements * numDimensions; i++) {
+void transpose(const unsigned int numElements, const float* const pointList, float* const pointListTransposed) {
+	for(unsigned int i = 0; i < numElements * NUM_DIMENSIONS; i++) {
 		unsigned int j = i / numElements;
 		unsigned int k = i % numElements;
 
-		pointListTransposed[i] = pointList[k*numDimensions + j];
+		pointListTransposed[i] = pointList[k*NUM_DIMENSIONS + j];
 	}
 }

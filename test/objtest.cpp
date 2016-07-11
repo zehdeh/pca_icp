@@ -12,11 +12,11 @@
 #include "cuda_runtime.h"
 
 int objTest() {
-	std::vector<vec3> vertices1;
+	std::vector<Point> vertices1;
 	const unsigned int numDimensions = 3;
 	unsigned int numElements1 = loadObj("res/muscleman/obj/Kneel.000001.obj", &vertices1);
 
-	std::vector<vec3> vertices2;
+	std::vector<Point> vertices2;
 	loadObj("res/muscleman/obj/Kneel.000001.obj", &vertices2);
 
 	//static_assert(numElements1 == numElements2, "The number of points do not match!");
@@ -33,7 +33,7 @@ int objTest() {
 	}
 
 	float testRotation[9] = {1,0,0,0,0,-1,0,1,0};
-	rotateMatrix(numElements1, numDimensions, *pointList2, testRotation);
+	rotateMatrix(numElements1, *pointList2, testRotation);
 
 	/*
 	std::cout << "First:" << std::endl;
@@ -51,7 +51,7 @@ int objTest() {
 
 	float distance1[3];
 	cudaEventRecord(start);
-	findOriginDistance(numElements1, numDimensions, *pointList1, distance1);
+	findOriginDistance(numElements1, *pointList1, distance1);
 	cudaEventRecord(stop);
 
 	cudaEventSynchronize(stop);
@@ -60,7 +60,7 @@ int objTest() {
 
 	float distance2[3];
 	cudaEventRecord(start);
-	findOriginDistance(numElements1, numDimensions, *pointList2, distance2);
+	findOriginDistance(numElements1, *pointList2, distance2);
 	cudaEventRecord(stop);
 
 	cudaEventSynchronize(stop);
@@ -68,7 +68,7 @@ int objTest() {
 	std::cout << "Computing centroid took " << milliseconds << " ms" << std::endl;
 
 	cudaEventRecord(start);
-	translate(numElements1, numDimensions, *pointList1, distance1);
+	translate(numElements1, *pointList1, distance1);
 	cudaEventRecord(stop);
 
 	cudaEventSynchronize(stop);
@@ -76,7 +76,7 @@ int objTest() {
 	std::cout << "Translating took " << milliseconds << " ms" << std::endl;
 
 	cudaEventRecord(start);
-	translate(numElements1, numDimensions, *pointList2, distance2);
+	translate(numElements1, *pointList2, distance2);
 	cudaEventRecord(stop);
 
 	cudaEventSynchronize(stop);

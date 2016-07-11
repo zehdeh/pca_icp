@@ -4,6 +4,6 @@
 #include <vector>
 #include "types.h"
 
-int loadObj(const char * path, std::vector<vec3>* vertices);
+int loadObj(const char * path, std::vector<Point>* vertices);
 
 #endif

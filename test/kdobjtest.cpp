@@ -1,4 +1,4 @@
-#include "kdtreetest.h"
+#include "kdobjtest.h"
 
 #include "Tools.h"
 
@@ -6,42 +6,66 @@
 #include "kdtree.h"
 #include "objloader.h"
 
+#include <cmath>
+
 /// Numbers for testing
 //#define NUM_POINTS 20
 //#define NUM_QUERIES 10
 
 /// Numbers for benchmarking
-#define NUM_POINTS 1000
-#define NUM_QUERIES 1000
 
 #define BF // Don't use for benchmarking!
 #define KD
 #define KD_GPU
 
-int kdTreeTest() {
+void translate(std::vector<Point>& points, const Point t) {
+	for(unsigned int i = 0; i < points.size(); i++) {
+		points[i].x += t.x;
+	}
+}
+
+float distance(const Point p1, const Point p2) {
+	float x = p2.x - p1.x;
+	float y = p2.y - p1.y;
+	float z = p2.z - p1.z;
+
+	return sqrtf(x*x + y*y + z*z);
+}
+
+int kdObjTest() {
 	// Increase the cuda stack size for more recursion levels.
 	cuda_increaseStackSize();
 
 	// Create random point data
-	std::vector<Point> points(NUM_POINTS);
-	for (unsigned int p = 0; p < NUM_POINTS; p++)
-	{
-		points[p].x = randF(-1.0f, 1.0f);
-		points[p].y = randF(-1.0f, 1.0f);
-		points[p].z = randF(-1.0f, 1.0f);
-	}
-	std::vector<KdNode2> dualNodes = makeKdLeafTree(points);
+	std::vector<Point> points;
+	//int numPoints = loadObj("res/untitled.obj", &points);
+	int numPoints = loadObj("res/cube/CubeCalib_01.000001.obj", &points);
+
+	std::cout << "Num points: " <<  numPoints << std::endl;
+
 	std::vector<KdNode> nodes = makeKdTree(points);
 
-	std::vector<Point> queries(NUM_QUERIES);
-	for (unsigned int q = 0; q < NUM_QUERIES; q++)
-	{
-		queries[q].x = randF(-1.0f, 1.0f);
-		queries[q].y = randF(-1.0f, 1.0f);
-		queries[q].z = randF(-1.0f, 1.0f);
-	}
+	std::vector<Point> queries;
+	//loadObj("res/untitled.obj", &queries);
+	loadObj("res/cube/CubeCalib_01.000001.obj", &queries);
+	Point t;
+	t.x = 6;
+	t.y = 5;
+	t.z = 0;
+	translate(queries, t);
+
 	std::vector<KdNode> query_nodes = makeKdTree(queries);
-	std::vector<KdNode2> query_dualNodes = makeKdLeafTree(points);
+
+	std::vector<KdNode2> query_dualNodes = makeKdLeafTree(queries);
+	std::vector<KdNode2> dualNodes = makeKdLeafTree(points);
+
+	/*
+	for(unsigned int i = 0; i < queries.size(); i++) {
+		std::cout << i << std::endl;
+		std::cout << queries[i].x << " " << queries[i].y << " " << queries[i].z << std::endl;
+		std::cout << points[i].x << " " << points[i].y << " " << points[i].z << std::endl;
+	}
+	*/
 
 	// Init timing variables
 	__int64_t bfTimeCpu = 0;
@@ -49,6 +73,7 @@ int kdTreeTest() {
 	__int64_t dualTimeCpu = 0;
 	__int64_t start;
 
+	std::cout << "Built trees. Now searching neighbors" << std::endl;
 	// BF CPU
 #ifdef BF
 	std::vector<int> bfResults(queries.size());
@@ -105,9 +130,11 @@ int kdTreeTest() {
 			std::cout << "CPU/GPU KD Tree results differ!" << std::endl;
 #endif
 #endif
-		if(bfResults[q] != dualResults[q]) {
+		if(bfResults[q] != dualResults[q] && distance(queries[q], points[bfResults[q]]) != distance(queries[q],points[dualResults[q]])) {
 			std::cout << "CPU Dual Tree error!" << std::endl;
-			std::cout << q << " " << bfResults[q] << " " << dualResults[q] << std::endl;
+			std::cout << q << " correct neighbor: " << bfResults[q] << " wrong neighbor: " << dualResults[q] << std::endl;
+			std::cout << "Correct distance: " << distance(queries[q], points[bfResults[q]]) << std::endl;
+			std::cout << "Wrong distance: " << distance(queries[q], points[dualResults[q]]) << std::endl;
 			noErrors++;
 		}
 	}

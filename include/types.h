@@ -1,7 +1,9 @@
 #ifndef TYPES_HEADER
 #define TYPES_HEADER
 
-struct vec3 {
+#include <iostream>
+
+struct Point {
 	float x;
 	float y;
 	float z;

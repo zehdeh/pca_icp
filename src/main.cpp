@@ -9,6 +9,7 @@
 #include "pcltest.h"
 #include "cuda_objtest.h"
 #include "kdtreetest.h"
+#include "kdobjtest.h"
 
 int main(int argc, char** argv) {
 	//return pclTest(argc, argv);
@@ -16,7 +17,8 @@ int main(int argc, char** argv) {
 	//objTest();
 	//std::cout << "=====================" << std::endl;
 	//cuda_objTest();
-	kdTreeTest();
+	//kdTreeTest();
+	kdObjTest();
 
 	return 0;
 }
