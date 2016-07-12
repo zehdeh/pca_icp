@@ -4,19 +4,27 @@
 
 #include "util.h"
 #include "kdtree.h"
-#include "objloader.h"
+
+#include <cmath>
 
 /// Numbers for testing
-//#define NUM_POINTS 20
-//#define NUM_QUERIES 10
+#define NUM_POINTS 10000
+#define NUM_QUERIES 10000
 
 /// Numbers for benchmarking
-#define NUM_POINTS 1000
-#define NUM_QUERIES 1000
 
 #define BF // Don't use for benchmarking!
 #define KD
 #define KD_GPU
+#define DUAL
+
+float distance2(const Point p1, const Point p2) {
+	float x = p2.x - p1.x;
+	float y = p2.y - p1.y;
+	float z = p2.z - p1.z;
+
+	return sqrtf(x*x + y*y + z*z);
+}
 
 int kdTreeTest() {
 	// Increase the cuda stack size for more recursion levels.
@@ -30,7 +38,7 @@ int kdTreeTest() {
 		points[p].y = randF(-1.0f, 1.0f);
 		points[p].z = randF(-1.0f, 1.0f);
 	}
-	std::vector<KdNode2> dualNodes = makeKdLeafTree(points);
+
 	std::vector<KdNode> nodes = makeKdTree(points);
 
 	std::vector<Point> queries(NUM_QUERIES);
@@ -40,15 +48,28 @@ int kdTreeTest() {
 		queries[q].y = randF(-1.0f, 1.0f);
 		queries[q].z = randF(-1.0f, 1.0f);
 	}
+
 	std::vector<KdNode> query_nodes = makeKdTree(queries);
-	std::vector<KdNode2> query_dualNodes = makeKdLeafTree(points);
+
+	std::vector<KdNode2> query_dualNodes = makeKdLeafTree(queries);
+	std::vector<KdNode2> dualNodes = makeKdLeafTree(points);
+
+	/*
+	for(unsigned int i = 0; i < queries.size(); i++) {
+		std::cout << i << std::endl;
+		std::cout << queries[i].x << " " << queries[i].y << " " << queries[i].z << std::endl;
+		std::cout << points[i].x << " " << points[i].y << " " << points[i].z << std::endl;
+	}
+	*/
 
 	// Init timing variables
 	__int64_t bfTimeCpu = 0;
 	__int64_t kdTimeCpu = 0;
 	__int64_t dualTimeCpu = 0;
+	__int64_t priorizedDualTimeCpu = 0;
 	__int64_t start;
 
+	std::cout << "Built trees. Now searching neighbors" << std::endl;
 	// BF CPU
 #ifdef BF
 	std::vector<int> bfResults(queries.size());
@@ -73,11 +94,19 @@ int kdTreeTest() {
 	cuda_findNnKd(nodes, points, queries, kdResultsGpu);
 #endif
 
+#ifdef DUAL
 	// Dual CPU
 	std::vector<int> dualResults(queries.size());
 	start = continuousTimeNs();
 	findNnDual(dualNodes, query_dualNodes, points, queries, dualResults);
 	dualTimeCpu += continuousTimeNs() - start;
+#endif
+
+	// Dual CPU
+	std::vector<int> prioritizedDualResults(queries.size());
+	start = continuousTimeNs();
+	findNnDualPrioritized(dualNodes, query_dualNodes, points, queries, prioritizedDualResults);
+	priorizedDualTimeCpu += continuousTimeNs() - start;
 
 	unsigned int noErrors = 0;
 	// Verification
@@ -105,11 +134,20 @@ int kdTreeTest() {
 			std::cout << "CPU/GPU KD Tree results differ!" << std::endl;
 #endif
 #endif
-		if(bfResults[q] != dualResults[q]) {
+/*
+		if(bfResults[q] != dualResults[q] && distance2(queries[q], points[bfResults[q]]) != distance2(queries[q],points[dualResults[q]])) {
 			std::cout << "CPU Dual Tree error!" << std::endl;
-			std::cout << q << " " << bfResults[q] << " " << dualResults[q] << std::endl;
+			std::cout << q << " correct neighbor: " << bfResults[q] << " wrong neighbor: " << dualResults[q] << std::endl;
+			std::cout << "Correct distance: " << distance2(queries[q], points[bfResults[q]]) << std::endl;
+			std::cout << "Wrong distance: " << distance2(queries[q], points[dualResults[q]]) << std::endl;
 			noErrors++;
 		}
+
+		if(bfResults[q] != prioritizedDualResults[q] && distance2(queries[q], points[bfResults[q]]) != distance2(queries[q],points[dualResults[q]])) {
+			std::cout << "CPU Priority Dual Tree error!" << std::endl;
+			std::cout << q << " correct neighbor: " << bfResults[q] << " wrong neighbor: " << prioritizedDualResults[q] << std::endl;
+		}
+*/
 	}
 	std::cout << "No Errors: " << noErrors << std::endl;
 
@@ -117,6 +155,7 @@ int kdTreeTest() {
 	std::cout << "BF time: " << bfTimeCpu << std::endl;
 	std::cout << "KD time: " << kdTimeCpu << std::endl;
 	std::cout << "Dual time: " << dualTimeCpu << std::endl;
+	std::cout << "Priorized dual time: " << priorizedDualTimeCpu << std::endl;
 
 	return 0;
 }

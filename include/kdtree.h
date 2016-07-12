@@ -23,11 +23,11 @@ struct KdNode
 };
 
 struct KdNode2 {
-	KdNode2() : isLeaf(false), minDistance(99999) {}
+	KdNode2() : isLeaf(false), minDistance(9999), parentIdx(-1) {}
 	unsigned int rightChild;
-	unsigned int leftChild;
 	unsigned int pointIdx;
 	float minDistance;
+	int parentIdx;
 
 	char SplitDim;
 	bool isLeaf;
@@ -40,7 +40,7 @@ struct KdNode2 {
 			<< "},y:{" << boundaries[1].first << "," << boundaries[1].second 
 			<< "},z:{" << boundaries[2].first << "," << boundaries[2].second << "})" << std::endl;
 			for(unsigned int i = 0; i < depth; i++) std::cout << "   ";
-			nodes[leftChild].print(nodes, points, depth + 1, leftChild);
+			nodes[ownIdx+1].print(nodes, points, depth + 1, ownIdx + 1);
 			for(unsigned int i = 0; i < depth; i++) std::cout << "   ";
 			nodes[rightChild].print(nodes, points, depth + 1, rightChild);
 		}
@@ -58,5 +58,8 @@ std::vector<KdNode2> makeKdLeafTree(const std::vector<Point>& points);
 void findNnDual(const std::vector<KdNode2>& nodes, const std::vector<KdNode2>& queryNodes,
 	const std::vector<Point>& points, const std::vector<Point>& queries, 
 	std::vector<int>& results);
+void findNnDualPrioritized(const std::vector<KdNode2>& nodes, const std::vector<KdNode2>& queryNodes,
+		const std::vector<Point>& points, const std::vector<Point>& queries,
+		std::vector<int>& results);
 
 #endif

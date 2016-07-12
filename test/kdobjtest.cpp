@@ -71,6 +71,7 @@ int kdObjTest() {
 	__int64_t bfTimeCpu = 0;
 	__int64_t kdTimeCpu = 0;
 	__int64_t dualTimeCpu = 0;
+	__int64_t priorizedDualTimeCpu = 0;
 	__int64_t start;
 
 	std::cout << "Built trees. Now searching neighbors" << std::endl;
@@ -103,6 +104,12 @@ int kdObjTest() {
 	start = continuousTimeNs();
 	findNnDual(dualNodes, query_dualNodes, points, queries, dualResults);
 	dualTimeCpu += continuousTimeNs() - start;
+
+	// Dual CPU
+	std::vector<int> prioritizedDualResults(queries.size());
+	start = continuousTimeNs();
+	findNnDualPrioritized(dualNodes, query_dualNodes, points, queries, prioritizedDualResults);
+	priorizedDualTimeCpu += continuousTimeNs() - start;
 
 	unsigned int noErrors = 0;
 	// Verification
@@ -137,6 +144,11 @@ int kdObjTest() {
 			std::cout << "Wrong distance: " << distance(queries[q], points[dualResults[q]]) << std::endl;
 			noErrors++;
 		}
+
+		if(bfResults[q] != prioritizedDualResults[q] && distance(queries[q], points[bfResults[q]]) != distance(queries[q],points[dualResults[q]])) {
+			std::cout << "CPU Priority Dual Tree error!" << std::endl;
+			std::cout << q << " correct neighbor: " << bfResults[q] << " wrong neighbor: " << prioritizedDualResults[q] << std::endl;
+		}
 	}
 	std::cout << "No Errors: " << noErrors << std::endl;
 
@@ -144,6 +156,7 @@ int kdObjTest() {
 	std::cout << "BF time: " << bfTimeCpu << std::endl;
 	std::cout << "KD time: " << kdTimeCpu << std::endl;
 	std::cout << "Dual time: " << dualTimeCpu << std::endl;
+	std::cout << "Priorized dual time: " << priorizedDualTimeCpu << std::endl;
 
 	return 0;
 }

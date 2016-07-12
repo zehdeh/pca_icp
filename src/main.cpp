@@ -17,8 +17,8 @@ int main(int argc, char** argv) {
 	//objTest();
 	//std::cout << "=====================" << std::endl;
 	//cuda_objTest();
-	//kdTreeTest();
-	kdObjTest();
+	kdTreeTest();
+	//kdObjTest();
 
 	return 0;
 }
