@@ -100,13 +100,13 @@ int kdObjTest() {
 #endif
 
 	// Dual CPU
-	std::vector<int> dualResults(queries.size());
+	std::vector<unsigned int> dualResults(queries.size());
 	start = continuousTimeNs();
 	cpu_findNnDual(dualNodes, query_dualNodes, points, queries, dualResults);
 	dualTimeCpu += continuousTimeNs() - start;
 
 	// Dual CPU
-	std::vector<int> prioritizedDualResults(queries.size());
+	std::vector<unsigned int> prioritizedDualResults(queries.size());
 	start = continuousTimeNs();
 	cpu_findNnDualPrioritized(dualNodes, query_dualNodes, points, queries, prioritizedDualResults);
 	priorizedDualTimeCpu += continuousTimeNs() - start;

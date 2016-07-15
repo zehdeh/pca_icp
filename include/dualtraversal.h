@@ -35,12 +35,12 @@ struct KdNode2 {
 std::vector<KdNode2> makeKdLeafTree(const std::vector<Point>& points);
 void cpu_findNnDual(const std::vector<KdNode2>& nodes, const std::vector<KdNode2>& queryNodes,
 	const std::vector<Point>& points, const std::vector<Point>& queries, 
-	std::vector<int>& results);
+	std::vector<unsigned int>& results);
 void cpu_findNnDualPrioritized(const std::vector<KdNode2>& nodes, const std::vector<KdNode2>& queryNodes,
 		const std::vector<Point>& points, const std::vector<Point>& queries,
-		std::vector<int>& results);
+		std::vector<unsigned int>& results);
 void cuda_findNnDual(const std::vector<KdNode2>& nodes, const std::vector<KdNode2>& queryNodes,
 		const std::vector<Point>& points, const std::vector<Point>& queries,
-		std::vector<int>& results);
+		std::vector<unsigned int>& results);
 
 #endif
