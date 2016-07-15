@@ -3,7 +3,7 @@
 #include "Tools.h"
 
 #include "util.h"
-#include "kdtree.h"
+#include "dualtraversal.h"
 #include "objloader.h"
 
 #include <cmath>
@@ -102,13 +102,13 @@ int kdObjTest() {
 	// Dual CPU
 	std::vector<int> dualResults(queries.size());
 	start = continuousTimeNs();
-	findNnDual(dualNodes, query_dualNodes, points, queries, dualResults);
+	cpu_findNnDual(dualNodes, query_dualNodes, points, queries, dualResults);
 	dualTimeCpu += continuousTimeNs() - start;
 
 	// Dual CPU
 	std::vector<int> prioritizedDualResults(queries.size());
 	start = continuousTimeNs();
-	findNnDualPrioritized(dualNodes, query_dualNodes, points, queries, prioritizedDualResults);
+	cpu_findNnDualPrioritized(dualNodes, query_dualNodes, points, queries, prioritizedDualResults);
 	priorizedDualTimeCpu += continuousTimeNs() - start;
 
 	unsigned int noErrors = 0;

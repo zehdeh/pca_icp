@@ -4,6 +4,7 @@
 
 #include "util.h"
 #include "kdtree.h"
+#include "dualtraversal.h"
 
 #include <cmath>
 
@@ -98,14 +99,14 @@ int kdTreeTest() {
 	// Dual CPU
 	std::vector<int> dualResults(queries.size());
 	start = continuousTimeNs();
-	findNnDual(dualNodes, query_dualNodes, points, queries, dualResults);
+	cpu_findNnDual(dualNodes, query_dualNodes, points, queries, dualResults);
 	dualTimeCpu += continuousTimeNs() - start;
 #endif
 
 	// Dual CPU
 	std::vector<int> prioritizedDualResults(queries.size());
 	start = continuousTimeNs();
-	findNnDualPrioritized(dualNodes, query_dualNodes, points, queries, prioritizedDualResults);
+	cpu_findNnDualPrioritized(dualNodes, query_dualNodes, points, queries, prioritizedDualResults);
 	priorizedDualTimeCpu += continuousTimeNs() - start;
 
 	unsigned int noErrors = 0;
