@@ -154,10 +154,12 @@ int kdTreeTest() {
 			noErrorsPrioritized++;
 		}
 
+/*
 		if(bfResults[q] != dualResultsGpu[q] && distance2(queries[q], points[bfResults[q]]) != distance2(queries[q],points[dualResultsGpu[q]])) {
 			std::cout << "GPU Dual Tree error!" << std::endl;
 			std::cout << q << " correct neighbor: " << bfResults[q] << " wrong neighbor: " << dualResultsGpu[q] << std::endl;
 		}
+		*/
 	}
 	std::cout << "No Dual Errors: " << noErrors << std::endl;
 	std::cout << "No Dual Prioritized Errors: " << noErrorsPrioritized << std::endl;

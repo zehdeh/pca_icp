@@ -325,8 +325,9 @@ __global__ void findNnDual(unsigned int* nns, const Point* const points, const u
 
 	int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
+/*
 	int i = 0;
-	while(*currentItemCtr < (*queueEnd - 1) && nns[999] < 100000) {
+	while(*currentItemCtr < (*queueEnd - 1) && nns[999] < 10) {
 		if((i+idx*2) < (*queueEnd - 1)) {
 			const unsigned int queueAdvance = dualTreeStep(nodes, queryNodes, points, queries, queue[i+idx*2], queue[i+idx*2+1], nns, distances, queue, *queueEnd);
 			atomicAdd(queueEnd, queueAdvance);
@@ -335,6 +336,20 @@ __global__ void findNnDual(unsigned int* nns, const Point* const points, const u
 		}
 		i += blockDim.x*gridDim.x;
 	}
+*/
+	if(idx == 0) {
+		const unsigned int queueAdvance = dualTreeStep(nodes, queryNodes, points, queries, queue[0], queue[1], nns, distances, queue, *queueEnd);
+		atomicAdd(queueEnd, queueAdvance);
+		atomicAdd(currentItemCtr, 2);
+	}
+	__syncthreads();
+
+	if(idx < 4) {
+		const unsigned int queueAdvance = dualTreeStep(nodes, queryNodes, points, queries, queue[idx*2], queue[idx*2+1], nns, distances, queue, *queueEnd);
+		atomicAdd(currentItemCtr, 2);
+		atomicAdd(queueEnd, queueAdvance);
+	}
+	__syncthreads();
 }
 
 float score(const KdNode2* queryNodes,
@@ -448,6 +463,7 @@ void cuda_findNnDual(const std::vector<KdNode2>& nodes, const std::vector<KdNode
 	unsigned int queueEnd = 2;
 
 	size_t queueSize = queryNodes.size() * nodes.size() * sizeof(unsigned int);
+	unsigned int queue[100];
 
 	cudaMalloc(&gPoints, sizeof(Point) * points.size());
 	cudaMalloc(&gNodes, sizeof(KdNode2) * nodes.size());
@@ -495,6 +511,11 @@ void cuda_findNnDual(const std::vector<KdNode2>& nodes, const std::vector<KdNode
 	gpuErrchk(cudaMemcpy(&queueEnd, gQueueEnd, sizeof(unsigned int), cudaMemcpyDeviceToHost));
 	std::cout << "CurrentItemCtr: " << currentItemCtr << std::endl;
 	std::cout << "QueueEnd: " << queueEnd << std::endl;
+
+	gpuErrchk(cudaMemcpy(&queue, gQueue, sizeof(unsigned int)*100, cudaMemcpyDeviceToHost));
+	for(unsigned int i = 0; i < 100; i++) {
+		std::cout << "queue[" << i << "]: " << queue[i] << std::endl;
+	}
 
 	cudaFree(gPoints);
 	cudaFree(gNodes);
