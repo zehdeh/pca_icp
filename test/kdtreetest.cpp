@@ -9,8 +9,8 @@
 #include <cmath>
 
 /// Numbers for testing
-#define NUM_POINTS 1000
-#define NUM_QUERIES 1000
+#define NUM_POINTS 10
+#define NUM_QUERIES 10
 
 /// Numbers for benchmarking
 
@@ -52,7 +52,9 @@ int kdTreeTest() {
 
 	std::vector<KdNode> query_nodes = makeKdTree(queries);
 
+	std::cout << "Query Tree: " << std::endl;
 	std::vector<KdNode2> query_dualNodes = makeKdLeafTree(queries);
+	std::cout << "Point Tree: " << std::endl;
 	std::vector<KdNode2> dualNodes = makeKdLeafTree(points);
 
 	/*
@@ -154,12 +156,10 @@ int kdTreeTest() {
 			noErrorsPrioritized++;
 		}
 
-/*
 		if(bfResults[q] != dualResultsGpu[q] && distance2(queries[q], points[bfResults[q]]) != distance2(queries[q],points[dualResultsGpu[q]])) {
 			std::cout << "GPU Dual Tree error!" << std::endl;
 			std::cout << q << " correct neighbor: " << bfResults[q] << " wrong neighbor: " << dualResultsGpu[q] << std::endl;
 		}
-		*/
 	}
 	std::cout << "No Dual Errors: " << noErrors << std::endl;
 	std::cout << "No Dual Prioritized Errors: " << noErrorsPrioritized << std::endl;
