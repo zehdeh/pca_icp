@@ -9,8 +9,8 @@
 #include <cmath>
 
 /// Numbers for testing
-#define NUM_POINTS 40
-#define NUM_QUERIES 40
+#define NUM_POINTS 5
+#define NUM_QUERIES 4
 
 /// Numbers for benchmarking
 
