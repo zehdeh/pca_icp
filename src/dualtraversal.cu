@@ -7,7 +7,7 @@
 
 #define INFTY 9999
 #define THREADS_PER_BLOCK 512
-#define GPUVERBOSE
+//#define GPUVERBOSE
 
 struct CudaPoint : Point {
 	__host__ __device__ CudaPoint(const Point& p) {
@@ -141,7 +141,7 @@ std::vector<KdNode2> makeKdLeafTree(const std::vector<Point>& points) {
 		pointIndices[i] = i;
 	}
 	const unsigned int rootIdx = makeKdLeafTree(points, pointIndices, nodes, KdNode::X, 0, -1);
-	nodes[rootIdx].print(nodes, points, 0, rootIdx);
+	//nodes[rootIdx].print(nodes, points, 0, rootIdx);
 
 	return nodes;
 }
@@ -198,24 +198,16 @@ __host__ __device__ bool dualBaseCase(const CudaPoint& query, const CudaPoint& p
 	}
 }
 
-__device__ bool cuda_dualBaseCase(const CudaPoint& query, const CudaPoint& point,
+__device__ void cuda_dualBaseCase(const CudaPoint& query, const CudaPoint& point,
 	const unsigned int currentQueryIdx, const unsigned int currentPointIdx,
 	unsigned int* Nns, float* distances) {
 
-	if(currentQueryIdx == 1 && currentPointIdx == 2) {
-			printf("At least were comparing\n");
-	}
+	//printf("Point: x %f y %f z %f", query.x, query.y, query.z);
 	const float distance = (point - query).length();
 	atomicMin(&(distances[currentQueryIdx]), distance);
 	if(distance == distances[currentQueryIdx]) {
 		Nns[currentQueryIdx] = currentPointIdx;
 		//distances[currentQueryIdx] = distance;
-		if(currentQueryIdx == 1) {
-			printf("Writing one with %d d: %f\n", currentPointIdx, distance);
-		}
-		return true;
-	} else {
-		return false;
 	}
 }
 
@@ -252,14 +244,9 @@ __device__ unsigned int cuda_dualTreeStep(const KdNode2* nodes, const KdNode2* q
 #ifdef GPUVERBOSE
 		printf("Comparing %d with %d\n",currentQueryNode.pointIdx,currentNode.pointIdx);
 #endif
-		bool setD = cuda_dualBaseCase(queries[currentQueryNode.pointIdx], points[currentNode.pointIdx], 
+		cuda_dualBaseCase(queries[currentQueryNode.pointIdx], points[currentNode.pointIdx], 
 			currentQueryNode.pointIdx, currentNode.pointIdx,
 			Nns, distances);
-		if(currentQueryNodeIdx == 6 && currentNodeIdx == 9) {
-
-			const float distance = ((CudaPoint)points[currentNode.pointIdx] - (CudaPoint)queries[currentQueryNode.pointIdx]).length();
-			printf("q: %d n: %d d: %f\n", currentQueryNode.pointIdx, currentNode.pointIdx, distance);
-		}
 	} else if(currentQueryNode.isLeaf && !currentNode.isLeaf) {
 #ifdef VERBOSE
 		std::cout << "pushing (" << currentQueryNodeIdx << "," << (currentNodeIdx + 1) << ")" << std::endl;
@@ -341,6 +328,7 @@ __host__ __device__ unsigned int dualTreeStep(const KdNode2* nodes, const KdNode
 		printChildren(nodes, currentNodeIdx, distances);
 		std::cout << std::endl;
 #endif
+
 		return 0;
 	}
 
@@ -448,7 +436,7 @@ void cpu_findNnDual(const std::vector<KdNode2>& nodes, const std::vector<KdNode2
 #ifdef GPUVERBOSE
 	std::cout << "Current item / EndQueue (CPU): " << currentItemCtr << "/" << queueEnd << std::endl;
 	for(unsigned int i = 0; i < queueEnd; i = i + 2) {
-		std::cout << "queue[" << i << "] (CPU):  " << queue[i] << " " << queue[i+1] << std::endl;
+	//	std::cout << "queue[" << i << "] (CPU):  " << queue[i] << " " << queue[i+1] << std::endl;
 	}
 #endif
 	results.insert(results.begin(), &Nns[0], &Nns[sizeof(Nns) / sizeof(unsigned int)]);
@@ -461,30 +449,32 @@ __global__ void findNnDual(unsigned int* nns, const Point* const points, const u
 	const KdNode2* const queryNodes, const unsigned int numQueryNodes,
 	float* distances, unsigned int* const queue, unsigned int* queueEnd, unsigned int* currentItemCtr) {
 
-	//int idx = blockIdx.x * blockDim.x + threadIdx.x;
+	int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
 	__shared__ unsigned int localQueue[THREADS_PER_BLOCK*2*4];
 	__shared__ unsigned int localCurrentItemCtr;
 	__shared__ unsigned int localQueueEnd;
 	__shared__ unsigned int tempQueueEnd;
 
-	while(*currentItemCtr < (*queueEnd - 1)) {
-	
+	unsigned int c = *currentItemCtr;
+	unsigned int e = *queueEnd;
+	while(c < (e - 1)) {
+
 		if(threadIdx.x == 0) {
-			printf("new iteration\n");
 			localCurrentItemCtr = 0;
 			localQueueEnd = 0;
 		}
 		__syncthreads();
 
-		if((*currentItemCtr + (threadIdx.x*2) + 1) < *queueEnd) {
-			cuda_dualTreeStep(nodes, queryNodes, points, queries, queue[*currentItemCtr + (threadIdx.x*2)], queue[*currentItemCtr + (threadIdx.x*2) + 1], nns, distances, localQueue, &localQueueEnd);
+		if((c + (idx*2) + 1) < e) {
+			cuda_dualTreeStep(nodes, queryNodes, points, queries, queue[c + (idx*2)], queue[c + (idx*2) + 1], nns, distances, localQueue, &localQueueEnd);
 			atomicAdd(&localCurrentItemCtr, 2);
 		}
 
 		__syncthreads();
 		if(threadIdx.x == 0) {
 			tempQueueEnd = atomicAdd(queueEnd, localQueueEnd);
+			atomicAdd(currentItemCtr, localCurrentItemCtr);
 		}
 		__syncthreads();
 
@@ -494,10 +484,11 @@ __global__ void findNnDual(unsigned int* nns, const Point* const points, const u
 			i++;
 		}
 
-		if(threadIdx.x == 0) {
-			atomicAdd(currentItemCtr, localCurrentItemCtr);
-		}
+		//if(threadIdx.x == 0) {
+		//}
 		__syncthreads();
+		c = *currentItemCtr;
+		e = *queueEnd;
 	}
 }
 
@@ -621,7 +612,7 @@ void cuda_findNnDual(const std::vector<KdNode2>& nodes, const std::vector<KdNode
 
 	const unsigned int numNodes = queryNodes.size() * nodes.size();
 	size_t queueSize = numNodes * sizeof(unsigned int);
-	unsigned int queue[300];
+	unsigned int * queue = new unsigned int[numNodes];
 	memset(queue, 0, sizeof(queue));
 
 	cudaMalloc(&gPoints, sizeof(Point) * points.size());
@@ -640,27 +631,27 @@ void cuda_findNnDual(const std::vector<KdNode2>& nodes, const std::vector<KdNode
 
 	cudaMemcpy(gPoints, &(points[0]), sizeof(Point) * points.size(), cudaMemcpyHostToDevice);
 	cudaMemcpy(gNodes, &(nodes[0]), sizeof(KdNode2) * nodes.size(), cudaMemcpyHostToDevice);
-	cudaMemcpy(gQueries, &(queries[0]), sizeof(KdNode2) * queries.size(), cudaMemcpyHostToDevice);
+	cudaMemcpy(gQueries, &(queries[0]), sizeof(Point) * queries.size(), cudaMemcpyHostToDevice);
 	cudaMemcpy(gQueryNodes, &(queryNodes[0]), sizeof(KdNode2) * queryNodes.size(), cudaMemcpyHostToDevice);
 	cudaMemcpy(gDistances, distances, sizeof(float) * queries.size(), cudaMemcpyHostToDevice);
 
-
 	int blocksPerGrid = 1;
-/*
+	/*
+	const unsigned int numItems = queries.size() * points.size();
 	int blocksPerGrid =
-			queries.size() % THREADS_PER_BLOCK == 0 ?
-					(queries.size() / THREADS_PER_BLOCK) :
-					(queries.size() / THREADS_PER_BLOCK) + 1;
+			numItems % THREADS_PER_BLOCK == 0 ?
+					(numItems / THREADS_PER_BLOCK) :
+					(numItems / THREADS_PER_BLOCK) + 1;
+	*/
 
+	std::cout << "Preparing kernel run!" << std::endl;
 	//FIXME: there is a danger that we already reach leaf level here!
 	while((queueEnd - currentItemCtr) / 2 < blocksPerGrid) {
 		const unsigned int queueAdvance = dualTreeStep(&nodes[0], &queryNodes[0], &points[0], &queries[0], queue[currentItemCtr], queue[currentItemCtr + 1], Nns, distances, queue, queueEnd);
 		queueEnd += queueAdvance;
-		std::cout << "Advancing by " << queueAdvance << std::endl;
 		currentItemCtr += 2;
 	}
-	queueEnd = currentItemCtr + blocksPerGrid * 2;
-	*/
+	//queueEnd = currentItemCtr + blocksPerGrid * 2;
 
 	gpuErrchk(cudaMemcpy(gQueue, &(queue[0]), sizeof(unsigned int) * queueEnd * 2, cudaMemcpyHostToDevice));
 	gpuErrchk(cudaMemcpy(gQueueEnd, &queueEnd, sizeof(unsigned int), cudaMemcpyHostToDevice));
@@ -677,26 +668,28 @@ void cuda_findNnDual(const std::vector<KdNode2>& nodes, const std::vector<KdNode
 	cudaDeviceSynchronize();
 
 	dualTimeGpu = continuousTimeNs() - start;
+	std::cout << "Kernel ended!" << std::endl;
 
 	size_t resultSize = sizeof(unsigned int) * queries.size();
 	gpuErrchk(cudaMemcpy(&(results[0]), gNns, resultSize, cudaMemcpyDeviceToHost));
 
-#ifdef GPUVERBOSE
 	gpuErrchk(cudaMemcpy(&currentItemCtr, gCurrentItemCtr, sizeof(unsigned int), cudaMemcpyDeviceToHost));
 	gpuErrchk(cudaMemcpy(&queueEnd, gQueueEnd, sizeof(unsigned int), cudaMemcpyDeviceToHost));
 
-	gpuErrchk(cudaMemcpy(&queue, gQueue, sizeof(unsigned int)*queueEnd, cudaMemcpyDeviceToHost));
 	std::cout << "Current Item / EndQueue (GPU): " << currentItemCtr << "/" << queueEnd << std::endl;
-	for(unsigned int i = 0; i < queueEnd; i = i + 2) {
-		std::cout << "queue[" << i << "] (GPU):  " << queue[i] << " " << queue[i+1] << std::endl;
-	}
+#ifdef GPUVERBOSE
 
 	gpuErrchk(cudaMemcpy(&distances, gDistances, sizeof(float)*queries.size(), cudaMemcpyDeviceToHost));
 	for(unsigned int i = 0; i < queries.size(); i++) {
 		std::cout << "results[" << i << "]: " << results[i] << " d: " << distances[i] << std::endl;
 	}
+	gpuErrchk(cudaMemcpy(&queue, gQueue, sizeof(unsigned int)*queueEnd, cudaMemcpyDeviceToHost));
+	for(unsigned int i = 0; i < queueEnd; i = i + 2) {
+		std::cout << "queue[" << i << "] (GPU):  " << queue[i] << " " << queue[i+1] << std::endl;
+	}
 #endif
 
+	delete[] queue;
 	cudaFree(gPoints);
 	cudaFree(gNodes);
 	cudaFree(gQueries);
