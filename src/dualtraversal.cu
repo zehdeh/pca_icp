@@ -141,7 +141,7 @@ std::vector<KdNode2> makeKdLeafTree(const std::vector<Point>& points) {
 		pointIndices[i] = i;
 	}
 	const unsigned int rootIdx = makeKdLeafTree(points, pointIndices, nodes, KdNode::X, 0, -1);
-	nodes[rootIdx].print(nodes, points, 0, rootIdx);
+	//nodes[rootIdx].print(nodes, points, 0, rootIdx);
 
 	return nodes;
 }
@@ -439,12 +439,12 @@ void cpu_findNnDual(const std::vector<KdNode2>& nodes, const std::vector<KdNode2
 		queueEnd += queueAdvance;
 		currentItemCtr += 2;
 	}
-//#ifdef GPUVERBOSE
+#ifdef GPUVERBOSE
 	std::cout << "Current item / EndQueue (CPU): " << currentItemCtr << "/" << queueEnd << std::endl;
 	for(unsigned int i = 0; i < queueEnd; i = i + 2) {
 		std::cout << "queue[" << i << "] (CPU):  " << queue[i] << " " << queue[i+1] << std::endl;
 	}
-//#endif
+#endif
 	results.insert(results.begin(), &Nns[0], &Nns[sizeof(Nns) / sizeof(unsigned int)]);
 	delete queue;
 }
@@ -507,7 +507,7 @@ float score(const KdNode2* queryNodes,
 	const float nodeDistance = minNodeDistance(currentQueryNode, currentNode);
 	const float maxDescendant = maxDescendantDistance(queryNodes, currentQueryNodeIdx, distances);
 	if(nodeDistance < maxDescendant) {
-		return maxDescendant - nodeDistance;
+		return nodeDistance;
 	}
 
 	return INFTY;
@@ -517,7 +517,7 @@ void dualTreeStepPrioritized(const KdNode2* nodes, const KdNode2* queryNodes,
 	const Point* points, const Point* queries,
 	const unsigned int currentNodeIdx, const unsigned int currentQueryNodeIdx,
 	unsigned int* Nns, float* distances,
-	std::priority_queue<prioritizedWorkItem> stack) {
+	std::priority_queue<prioritizedWorkItem>& stack) {
 
 	const KdNode2& currentQueryNode = queryNodes[currentQueryNodeIdx];
 	const KdNode2& currentNode = nodes[currentNodeIdx];
@@ -689,11 +689,12 @@ void cuda_findNnDual(const std::vector<KdNode2>& nodes, const std::vector<KdNode
 	for(unsigned int i = 0; i < queries.size(); i++) {
 		std::cout << "results[" << i << "]: " << results[i] << " d: " << distances[i] << std::endl;
 	}
-#endif
+
 	gpuErrchk(cudaMemcpy(queue, gQueue, sizeof(unsigned int)*queueEnd, cudaMemcpyDeviceToHost));
 	for(unsigned int i = 0; i < queueEnd; i = i + 2) {
 		std::cout << "queue[" << i << "] (GPU):  " << queue[i] << " " << queue[i+1] << std::endl;
 	}
+#endif
 
 	delete[] queue;
 	cudaFree(gPoints);

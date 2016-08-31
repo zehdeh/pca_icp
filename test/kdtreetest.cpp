@@ -9,14 +9,14 @@
 #include <cmath>
 
 /// Numbers for testing
-#define NUM_POINTS 5
-#define NUM_QUERIES 4
+#define NUM_POINTS 500
+#define NUM_QUERIES 500
 
 /// Numbers for benchmarking
 
 #define BF // Don't use for benchmarking!
-#define KD
-#define KD_GPU
+//#define KD
+//#define KD_GPU
 #define DUAL
 
 float distance2(const Point p1, const Point p2) {
@@ -103,11 +103,11 @@ int kdTreeTest() {
 	start = continuousTimeNs();
 	cpu_findNnDual(dualNodes, query_dualNodes, points, queries, dualResults);
 	dualTimeCpu += continuousTimeNs() - start;
-#endif
 
 	// Dual GPU
 	std::vector<unsigned int> dualResultsGpu(queries.size());
 	cuda_findNnDual(dualNodes, query_dualNodes, points, queries, dualResultsGpu);
+#endif
 
 	// Dual Prioritized CPU
 	std::vector<unsigned int> prioritizedDualResults(queries.size());
@@ -142,6 +142,7 @@ int kdTreeTest() {
 			std::cout << "CPU/GPU KD Tree results differ!" << std::endl;
 #endif
 #endif
+#ifdef DUAL
 		if(bfResults[q] != dualResults[q] && distance2(queries[q], points[bfResults[q]]) != distance2(queries[q],points[dualResults[q]])) {
 			std::cout << "CPU Dual Tree error!" << std::endl;
 			std::cout << q << " correct neighbor: " << bfResults[q] << " wrong neighbor: " << dualResults[q] << std::endl;
@@ -149,17 +150,17 @@ int kdTreeTest() {
 			std::cout << "Wrong distance: " << distance2(queries[q], points[dualResults[q]]) << std::endl;
 			noErrors++;
 		}
-
-		if(bfResults[q] != prioritizedDualResults[q] && distance2(queries[q], points[bfResults[q]]) != distance2(queries[q],points[dualResults[q]])) {
+		if(bfResults[q] != dualResultsGpu[q] && distance2(queries[q], points[bfResults[q]]) != distance2(queries[q],points[dualResultsGpu[q]])) {
+			std::cout << "GPU Dual Tree error!" << std::endl;
+			std::cout << q << " correct neighbor: " << bfResults[q] << " wrong neighbor: " << dualResultsGpu[q] << std::endl;
+		}
+#endif
+		if(bfResults[q] != prioritizedDualResults[q] && distance2(queries[q], points[bfResults[q]]) != distance2(queries[q],points[prioritizedDualResults[q]])) {
 			std::cout << "CPU Priority Dual Tree error!" << std::endl;
 			std::cout << q << " correct neighbor: " << bfResults[q] << " wrong neighbor: " << prioritizedDualResults[q] << std::endl;
 			noErrorsPrioritized++;
 		}
 
-		if(bfResults[q] != dualResultsGpu[q] && distance2(queries[q], points[bfResults[q]]) != distance2(queries[q],points[dualResultsGpu[q]])) {
-			std::cout << "GPU Dual Tree error!" << std::endl;
-			std::cout << q << " correct neighbor: " << bfResults[q] << " wrong neighbor: " << dualResultsGpu[q] << std::endl;
-		}
 	}
 	std::cout << "No Dual Errors: " << noErrors << std::endl;
 	std::cout << "No Dual Prioritized Errors: " << noErrorsPrioritized << std::endl;

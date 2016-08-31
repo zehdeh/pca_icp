@@ -1,11 +1,11 @@
 PROJECTNAME = pca_icp
 CPPFLAGS = -g -std=c++11
-LDFLAGS =-lboost_system -lboost_thread -lpcl_common -lpcl_io -lpcl_visualization -lpcl_filters -lvtkCommonDataModel-6.0 -lvtkCommonCore-6.0 -lvtkCommonMath-6.0 -lvtkRenderingCore-6.0 -lvtkRenderingLOD-6.0
+LDFLAGS =-lboost_system -lboost_thread -lpcl_common -lpcl_io -lpcl_visualization -lpcl_filters -lvtkCommonDataModel-6.2 -lvtkCommonCore-6.2 -lvtkCommonMath-6.2 -lvtkRenderingCore-6.2 -lvtkRenderingLOD-6.2
 OBJDIR = obj/
 SRCDIRS = src test
-INCDIRS = include/ /usr/include/eigen3/ /usr/local/include/pcl-1.7/ /usr/include/vtk-6.0/ /usr/local/cuda/include/ ../nvbio/
+INCDIRS = include/ /usr/include/eigen3/ /usr/local/include/pcl-1.7/ /usr/include/vtk-6.2/ /usr/local/cuda/include/ ../nvbio/
 INC = $(foreach d, $(INCDIRS), -I$d)
-COMPILER = g++
+COMPILER = g++-4.8
 CUDA_COMPILER = /usr/local/cuda/bin/nvcc
 CUDA_INSTALL_PATH = /usr/local/cuda/
 VPATH = src:test
